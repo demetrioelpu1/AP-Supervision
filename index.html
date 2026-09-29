@@ -878,8 +878,8 @@
     <div class="capa-bloque" id="blk-${c.id}">
       <div class="capa-cab"><span class="muestra" style="background:${c.color}"></span><b>${c.nombre}</b></div>
       <div id="${c.id}-vacio">
-        <label class="b-cargar">Cargar GeoJSON<input type="file" id="${c.id}-archivo" accept=".geojson,.json" hidden></label>
-        <p class="ayuda">También puedes arrastrar el archivo sobre el mapa: las líneas van a la red MT y los puntos a las SED.</p>
+        <label class="b-cargar">Cargar GeoJSON<input type="file" id="${c.id}-archivo" accept=".geojson,.json,application/json,application/geo+json,application/octet-stream,text/plain,*/*" hidden></label>
+        <p class="ayuda">En el celular: en WhatsApp, mantén presionado el archivo → Compartir → <b>AP</b>. En la PC puedes arrastrarlo al mapa.</p>
       </div>
       <div id="${c.id}-lleno" hidden>
         <p class="ayuda" id="${c.id}-info"></p>
@@ -1245,6 +1245,27 @@
     $(`${c.id}-limpiar`).onclick = () => { estado[c.id].filtro = null; refrescarFiltro(c, false); };
   });
 
+  // ---- archivos compartidos desde WhatsApp (Compartir → AP) ----
+  // El service worker (sw.js) recibe el archivo y lo deja guardado; aquí se carga en la capa que corresponde.
+  async function recibirCompartidos() {
+    if (!/[?&]compartido=1/.test(location.search) || !('caches' in window)) return;
+    history.replaceState(null, '', location.pathname);           // limpia la dirección
+    try {
+      const cache = await caches.open('ap-compartidos');
+      const claves = await cache.keys();
+      if (!claves.length) { avisar('No llegó ningún archivo. Intenta compartirlo de nuevo.', true); return; }
+      let n = 0;
+      for (const k of claves) {
+        const r = await cache.match(k);
+        const nombre = decodeURIComponent(r.headers.get('x-nombre') || 'archivo.geojson');
+        const texto = await r.text();
+        await cargarAutomatico({ name: nombre, text: async () => texto });
+        await cache.delete(k); n++;
+      }
+      avisar(`${n} archivo(s) recibido(s) desde otra app`);
+    } catch (err) { avisar('No se pudo leer el archivo compartido: ' + err.message, true); }
+  }
+
   // ---- al abrir la herramienta, vuelve a cargar las capas guardadas en el dispositivo ----
   (async () => {
     for (const c of CAPAS) {
@@ -1254,6 +1275,7 @@
       } catch {}
     }
     if (Object.keys(estado).length) { verPuno(); avisar('Capas recuperadas de la sesión anterior'); }
+    await recibirCompartidos();
   })();
 
   // ---- arrastrar y soltar archivos sobre el mapa (por ahora van a la Red MT) ----
@@ -1264,17 +1286,20 @@
     if (t === 'dragleave' && ev.relatedTarget) return;
     document.body.classList.remove('arrastrando');
   }));
+  // elige la capa según el tipo de geometría: líneas → Red MT, puntos → SED
+  async function cargarAutomatico(archivo) {
+    const t = await archivo.text();
+    let esPunto = false;
+    try { const d = JSON.parse(t); const f = (d.features || [])[0] || {};
+      esPunto = /Point/i.test((f.geometry && f.geometry.type) || '') || (f.geometry && f.geometry.x != null) || /Point/i.test(d.geometryType || ''); } catch {}
+    const c = CAPAS.find(k => (k.tipo === 'punto') === esPunto) || CAPAS[0];
+    await cargarArchivo(c, { name: archivo.name, text: async () => t });
+  }
   document.addEventListener('drop', ev => {
-    const a = ev.dataTransfer?.files?.[0]; if (!a) return;
+    const lista = [...(ev.dataTransfer?.files || [])]; if (!lista.length) return;
     ev.preventDefault();
-    a.text().then(t => {
-      let esPunto = false;
-      try { const d = JSON.parse(t); const f = (d.features || [])[0] || {};
-        esPunto = /Point/i.test((f.geometry && f.geometry.type) || '') || (f.geometry && f.geometry.x != null) || /Point/i.test(d.geometryType || ''); } catch {}
-      const c = CAPAS.find(k => (k.tipo === 'punto') === esPunto) || CAPAS[0];
-      if (panelCapas.hidden) abrirPanel('capas');
-      cargarArchivo(c, a);
-    });
+    if (panelCapas.hidden && !esMovil()) abrirPanel('capas');
+    lista.reduce((p, a) => p.then(() => cargarAutomatico(a)), Promise.resolve());
   });
 
   // ---------- Mostrar / ocultar barra UTM ----------

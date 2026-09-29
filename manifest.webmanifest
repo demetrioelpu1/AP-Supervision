@@ -34,5 +34,27 @@
    "type": "image/png",
    "purpose": "maskable"
   }
- ]
+ ],
+ "share_target": {
+  "action": "./compartir",
+  "method": "POST",
+  "enctype": "multipart/form-data",
+  "params": {
+   "title": "titulo",
+   "files": [
+    {
+     "name": "archivos",
+     "accept": [
+      "application/geo+json",
+      "application/json",
+      "application/octet-stream",
+      "text/plain",
+      ".geojson",
+      ".json",
+      "*/*"
+     ]
+    }
+   ]
+  }
+ }
 }
