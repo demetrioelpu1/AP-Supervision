@@ -1,0 +1,32 @@
+{
+ "name": "AP · Supervisión de Alumbrado Público",
+ "short_name": "AP",
+ "description": "Mapa de redes MT, SED y alumbrado público con GPS",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#000000",
+ "theme_color": "#000000",
+ "lang": "es",
+ "icons": [
+  {
+   "src": "icono_AP_192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icono_AP_512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icono_AP_maskable_512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
