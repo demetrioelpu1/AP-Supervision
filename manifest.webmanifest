@@ -1,8 +1,9 @@
 {
+ "id": "./?app=ap-supervision-v2",
  "name": "AP · Supervisión de Alumbrado Público",
  "short_name": "AP",
  "description": "Mapa de redes MT, SED y alumbrado público con GPS",
- "start_url": "./",
+ "start_url": "./?app=ap-supervision-v2",
  "scope": "./",
  "display": "standalone",
  "orientation": "any",
@@ -50,8 +51,7 @@
       "application/octet-stream",
       "text/plain",
       ".geojson",
-      ".json",
-      "*/*"
+      ".json"
      ]
     }
    ]
