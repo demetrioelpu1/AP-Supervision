@@ -23,7 +23,13 @@
    "purpose": "any"
   },
   {
-   "src": "icono_AP_maskable_512.png",
+   "src": "icono_AP_maskable_v2_192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icono_AP_maskable_v2_512.png",
    "sizes": "512x512",
    "type": "image/png",
    "purpose": "maskable"
