@@ -1286,13 +1286,37 @@
     if (t === 'dragleave' && ev.relatedTarget) return;
     document.body.classList.remove('arrastrando');
   }));
-  // elige la capa según el tipo de geometría: líneas → Red MT, puntos → SED
+  // ---- nombres de archivo acordados: la herramienta reconoce la capa por el nombre ----
+  //   red_MT.geojson · red_BT.geojson · SED.geojson · postes_MT.geojson · postes_BT.geojson · AP.geojson
+  //   (se admite texto adicional, p. ej. red_MT_Juliaca.geojson; no importan mayúsculas ni guiones)
+  const NOMBRES_CAPA = [
+    { id: 'postes_mt', nombre: 'Postes MT',            prueba: /(^|_)postes?_mt(_|$)/ },
+    { id: 'postes_bt', nombre: 'Postes BT',            prueba: /(^|_)postes?_bt(_|$)/ },
+    { id: 'mt',        nombre: 'Red MT',               prueba: /(^|_)red_mt(_|$)/ },
+    { id: 'bt',        nombre: 'Red BT',               prueba: /(^|_)red_bt(_|$)/ },
+    { id: 'sed',       nombre: 'SED',                  prueba: /(^|_)sed(_|$)/ },
+    { id: 'ap',        nombre: 'Alumbrado Público (AP)', prueba: /(^|_)ap(_|$)/ },
+  ];
+  function capaPorNombre(nombreArchivo) {
+    const n = String(nombreArchivo || '').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')      // quita tildes
+      .replace(/\.(geo)?json$/, '').replace(/[^a-z0-9]+/g, '_'); // espacios y guiones → _
+    return NOMBRES_CAPA.find(k => k.prueba.test(n)) || null;
+  }
   async function cargarAutomatico(archivo) {
     const t = await archivo.text();
-    let esPunto = false;
-    try { const d = JSON.parse(t); const f = (d.features || [])[0] || {};
-      esPunto = /Point/i.test((f.geometry && f.geometry.type) || '') || (f.geometry && f.geometry.x != null) || /Point/i.test(d.geometryType || ''); } catch {}
-    const c = CAPAS.find(k => (k.tipo === 'punto') === esPunto) || CAPAS[0];
+    let c = null;
+    const porNombre = capaPorNombre(archivo.name);
+    if (porNombre) {
+      c = CAPAS.find(k => k.id === porNombre.id);
+      if (!c) { avisar(`${archivo.name}: la capa ${porNombre.nombre} todavía no está habilitada en la herramienta.`, true); return; }
+    } else {
+      // nombre no reconocido: se decide por el tipo de geometría (líneas → Red MT, puntos → SED)
+      let esPunto = false;
+      try { const d = JSON.parse(t); const f = (d.features || [])[0] || {};
+        esPunto = /Point/i.test((f.geometry && f.geometry.type) || '') || (f.geometry && f.geometry.x != null) || /Point/i.test(d.geometryType || ''); } catch {}
+      c = CAPAS.find(k => (k.tipo === 'punto') === esPunto) || CAPAS[0];
+    }
     await cargarArchivo(c, { name: archivo.name, text: async () => t });
   }
   document.addEventListener('drop', ev => {
