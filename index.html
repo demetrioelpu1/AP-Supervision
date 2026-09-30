@@ -885,6 +885,149 @@
     etiquetas: ALIAS_NOD,
     ocultar: /^(GlobalID|OBJECTID|SHAPE.*|Shape.*|NOD_USR_.*|NOD_FEC_CR.*|NOD_FEC_AC.*|NOD_VNR_.*|NOD_COD_EMP?)$/i });
 
+
+  // ===================== Red BT, Postes BT y AP (simbología de sus archivos .lyr) =====================
+  // Alias: acepta el nombre completo del campo y, si no choca, su versión recortada a 10 letras (shapefile)
+  const conRecortes = obj => { const o = { ...obj }; Object.keys(obj).forEach(k => { const t = k.slice(0, 10); if (!(t in o)) o[t] = obj[k]; }); return o; };
+  const campo = (p, ...nombres) => { for (const n of nombres) if (p[n] != null && p[n] !== '') return p[n]; return ''; };
+  const normTxt = v => String(v ?? '').toUpperCase().replace(/\s+/g, '');
+
+  // ---- Red BT: "Tramo de Línea de Baja Tensión.lyr" ----
+  // Valores únicos de dos campos: Tipo Servicio (TBT_TIP_SRV) + Tipo de Red (TBT_COD_TIP_RED).
+  // Cada clase es un símbolo de varias líneas superpuestas (azul SP, amarillo AP, negro), algunas discontinuas.
+  const AZ = '#0071e8', AZ2 = '#0085fc', AM = '#fefd32', NG = '#000000';
+  CAPAS.push({ id: 'bt', nombre: 'Red de baja tensión (BT)', corto: 'Tramo BT', color: NG, ancho: 1.3, unidad: 'tramos',
+    derivar: p => {   // clase combinada, igual que el renderizador de ArcMap
+      const srv = normTxt(campo(p, 'TBT_TIP_SRV', 'TBT_TIP_SR')), red = normTxt(campo(p, 'TBT_COD_TIP_RED', 'TBT_COD_TI'));
+      p._CLASE_BT = srv && red ? `${srv}, ${red}` : '';
+    },
+    campoSugerido: /^TBT_COD_SED$/i,
+    modos: [
+      { nombre: 'Tipo de servicio y red (como ArcMap)', campo: /^_CLASE_BT$/,
+        clases: { 'SP+AP, A': [AZ2, 'SP+AP · Aéreo'], 'SP+AP, S': [NG, 'SP+AP · Subterráneo'], 'SP+AP, C': [AM, 'SP+AP · Subacuático'],
+                  'SP, A': [AZ, 'SP · Aéreo'], 'SP, S': [AZ, 'SP · Subterráneo'], 'SP, C': [AZ, 'SP · Subacuático'],
+                  'AP, A': [AM, 'AP · Aéreo'], 'AP, S': [AM, 'AP · Subterráneo'], 'AP, C': ['#eae92d', 'AP · Subacuático'] },
+        // capas de línea de cada símbolo, de abajo hacia arriba (grosor en px; 1 pt ≈ 1,33 px)
+        trazos: {
+          'SP+AP, A': [{ w: 2.7 }, { c: AM, w: 2 }, { c: NG, w: 1, d: '6 6' }],
+          'SP+AP, S': [{ w: 3.3 }, { c: AM, w: 3 }, { c: AZ2, w: 1.5, d: '6 6' }],
+          'SP+AP, C': [{ w: 4.5 }, { c: AZ, w: 3.5, d: '5 1.3' }],
+          'SP, A':    [{ w: 2.7 }],
+          'SP, S':    [{ w: 3.3 }, { c: NG, w: 1.3, d: '5 1.3' }],
+          'SP, C':    [{ w: 1.3 }],
+          'AP, A':    [{ w: 2, d: '1 4' }],
+          'AP, S':    [{ w: 3.3 }, { c: NG, w: 1, d: '5 1.3' }],
+          'AP, C':    [{ w: 1.3 }] },
+        flecha: { 'SP+AP, A': AZ, 'SP+AP, S': NG, 'SP, A': AZ, 'SP, S': NG, 'AP, S': AM, '': NG } },
+      { nombre: 'SED', campo: /^TBT_COD_SED$/i },
+      { nombre: 'Alimentador', campo: /^TBT_COD_ALI$/i }
+    ],
+    titulo: p => 'Tramo BT ' + campo(p, 'TBT_COD_TBT', 'TBT_COD_TB'),
+    etiquetas: conRecortes({ TBT_COD_TBT: 'Código tramo de línea', TBT_COD_TBT_PAD: 'Código de tramo padre', TBT_COD_SED: 'Código SED',
+      TBT_ETQ_SED: 'Etiqueta SED', TBT_TIP_SRV: 'Tipo servicio', TBT_COD_TIP_RED: 'Tipo de red', TBT_COD_SAL: 'Código salida BT',
+      TBT_NOM_SAL: 'Circuito BT', TBT_COD_ALI: 'Código de salida MT', TBT_COD_SET: 'Código de SET',
+      TBT_SP_TIP_FAB: 'SP: fabricación conductor', TBT_SP_NRO_CND: 'SP: n.º conductores', TBT_SP_COD_FAS: 'SP: fase',
+      TBT_SP_SEC_CND: 'SP: sección conductor', TBT_SP_MAT_CND: 'SP: material conductor', TBT_AP_TIP_FAB: 'AP: fabricación conductor',
+      TBT_AP_NRO_CND: 'AP: n.º conductores', TBT_AP_SEC_CND: 'AP: sección conductor', TBT_AP_MAT_CND: 'AP: material conductor',
+      TBT_TIP_NEU: 'Tipo de neutro', TBT_COD_TEC_FAS: 'Código técnico de fase', TBT_LONG: 'Longitud real (m)',
+      TBT_COD_LOC: 'Localidad', TBT_COD_OBRA: 'Código de obra', TBT_COD_PROP: 'Propietario',
+      TBT_FEC_PTA_SRV: 'Fecha de puesta en servicio', TBT_ATP_TBT: 'Autoportante', TBT_AP_TBT: 'Alumbrado público integrado',
+      TBT_EST_CON: 'Estado de conservación' }),
+    ocultar: /^(_.*|GlobalID|Enabled|OBJECTID|SHAPE.*|Shape.*|TBT_USR_.*|TBT_FEC_CR.*|TBT_FEC_AC.*|TBT_.*VNR.*|TBT_COD_EMP?)$/i });
+
+  // ---- Postes BT: "Estructura de Baja Tensión.lyr" ----
+  // Valores únicos de Material (NOD_COD_MAT_SPT), círculos de 7 pt con borde negro; etiqueta roja
+  // con el Código Estructura BT (NOD_COD_NOD), que no se muestra cuando el material es "Ninguno".
+  CAPAS.push({ id: 'postes_bt', nombre: 'Postes BT', corto: 'Poste BT', tipo: 'punto', estilo: 'circulo', unidad: 'postes',
+    color: '#fefd32', tamano: 9.3, borde: '#000000',
+    campoSugerido: /^NOD_COD_SED$/i,
+    modos: [
+      { nombre: 'Material del poste (como ArcMap)', campo: /^NOD_COD_MA(T_SPT)?$/i,
+        clases: { CO: ['#bfbfbf', 'Concreto'], FI: ['#ffb893', 'Fierro'], FG: ['#db7d7a', 'Fierro galvanizado'],
+                  FN: ['#8a1100', 'Fierro negro'], HO: ['#a1e82c', 'Hormigón'], MA: ['#000000', 'Madera'],
+                  NN: ['#33b420', 'Ninguno'], RI: ['#885f0c', 'Riel'] },
+        borde: { MA: '#ffffff' } },      // madera y ninguno usan caracteres especiales de ESRI en ArcMap
+      { nombre: 'SED', campo: /^NOD_COD_SED$/i },
+      { nombre: 'Alimentador', campo: /^NOD_COD_ALI?$/i }
+    ],
+    etiquetaMapa: p => normTxt(campo(p, 'NOD_COD_MAT_SPT', 'NOD_COD_MA')) === 'NN' ? '' : campo(p, 'NOD_COD_NOD', 'NOD_COD_NO'),
+    colorEtiqueta: '#ff0000',
+    titulo: p => 'Poste BT ' + campo(p, 'NOD_COD_NOD', 'NOD_COD_NO'),
+    etiquetas: conRecortes({ NOD_COD_NOD: 'Código Estructura BT', NOD_COD_NOD_MT: 'Código Estructura MT', NOD_COD_SED: 'Código SED',
+      NOD_ETQ_SED: 'Etiqueta SED', NOD_TIP_SRV: 'Tipo servicio', NOD_COD_SAL: 'Código salida BT', NOD_NOM_SAL: 'Circuito BT',
+      NOD_COD_TBT: 'Código tramo BT', NOD_COD_ALI: 'Código salida MT', NOD_COD_SET: 'Código SET', NOD_COD_INV: 'Inventario: código',
+      NOD_COD_FNC: 'Función estructura', NOD_CNT_TER: 'Ternas', NOD_CNT_SPT: 'Cant. postes', NOD_COD_TIP_SPT: 'Tipo de estructura',
+      NOD_COD_MAT_SPT: 'Material estructura', NOD_ALT_SPT: 'Altura estructura', NOD_ESF_SPT: 'Esfuerzo estructura',
+      NOD_CLS_SPT: 'Clase poste', NOD_FLG_ATER: 'Aterramiento', NOD_COD_TIP_ARM_01: 'Tipo armado BT1',
+      NOD_DSC_TIP_ARM_01: 'Descripción armado BT1', NOD_COD_LOC: 'Localidad', NOD_COD_OBRA: 'Código de obra',
+      NOD_COD_PROP: 'Propietario', NOD_FEC_PTA_SRV: 'Fecha puesta en servicio', NOD_EST_CONS: 'Estado: conservación',
+      NOD_FLG_TELE: 'Poste de telecomunicación', NOD_ETQ_CPO: 'Etiqueta de campo', NOD_ANG: 'Ángulo' }),
+    ocultar: /^(GlobalID|Enabled|OBJECTID|SHAPE.*|Shape.*|NOD_USR_.*|NOD_FEC_CR.*|NOD_FEC_AC.*|NOD_VNR_.*|NOD_COD_EMP?)$/i });
+
+  // ---- Alumbrado público: "Equipo de Alumbrado Público.lyr" ----
+  // Símbolo único rosado (carácter 236 de la fuente ESRI AMFM Electric, 20 pt, desplazado 10 pt),
+  // girado según el ángulo del pastoral (EQP_AP_PAST_ANG); etiqueta con el Código Equipo AP.
+  CAPAS.push({ id: 'ap', nombre: 'Alumbrado público (AP)', corto: 'Equipo AP', tipo: 'punto', estilo: 'circulo', unidad: 'equipos',
+    color: '#ff8de3', tamano: 7, borde: '#000000', pastoral: true,
+    campoSugerido: /^EQP_AP_COD_SED$/i,
+    modos: [
+      { nombre: 'Símbolo único (como ArcMap)', campo: /^EQP_AP_COD_EQP_AP$/i, unico: true },
+      { nombre: 'SED', campo: /^EQP_AP_COD_SED$/i },
+      { nombre: 'Tipo de lámpara', campo: /^EQP_AP_LAMP_TIP$/i },
+      { nombre: 'Potencia de lámpara', campo: /^EQP_AP_LAMP_POT$/i }
+    ],
+    anguloDe: p => +campo(p, 'EQP_AP_PAST_ANG', 'EQP_AP_PAS') || 0,
+    etiquetaMapa: p => campo(p, 'EQP_AP_COD_EQP_AP'), colorEtiqueta: '#000000',
+    titulo: p => 'Equipo AP ' + campo(p, 'EQP_AP_COD_EQP_AP'),
+    etiquetas: { EQP_AP_COD_EQP_AP: 'Código equipo AP', EQP_AP_COD_SED: 'Código SED', EQP_AP_ETQ_SED: 'Etiqueta SED',
+      EQP_AP_COD_NOD: 'Código estructura BT', EQP_AP_COD_TBT: 'Código tramo BT', EQP_AP_COD_SAL: 'Código salida BT',
+      EQP_AP_NOM_SAL: 'Circuito BT', EQP_AP_TIP_SRV: 'Tipo servicio', EQP_AP_COD_ALI: 'Código salida MT', EQP_AP_COD_SET: 'Código SET',
+      EQP_AP_COD_FAS: 'Fase', EQP_AP_TEN_FF: 'Tensión AP', EQP_AP_PAST_COD: 'Código pastoral', EQP_AP_PAST_TIP: 'Tipo pastoral',
+      EQP_AP_PAST_MAT: 'Material pastoral', EQP_AP_PAST_ANG: 'Ángulo pastoral', EQP_AP_LUM_TIP: 'Tipo luminaria',
+      EQP_AP_LUM_MARC: 'Marca luminaria', EQP_AP_LUM_MOD: 'Modelo luminaria', EQP_AP_LAMP_TIP: 'Tipo lámpara',
+      EQP_AP_LAMP_MARC: 'Marca lámpara', EQP_AP_LAMP_POT: 'Potencia lámpara', EQP_AP_LAMP_COL: 'Color lámpara',
+      EQP_AP_LAMP_FLU: 'Flujo luminoso', EQP_AP_LED_DRI_SINO: 'LED driver', EQP_AP_TRAM_VIA: 'Tramo de vía',
+      EQP_AP_COD_PQUE: 'Parque', EQP_AP_COD_UBIC: 'Ubicación', EQP_AP_COD_LOC: 'Localidad', EQP_AP_COD_OBRA: 'Código de obra',
+      EQP_AP_COD_PROP: 'Propietario', EQP_AP_FEC_PTA_SRV: 'Fec. puesta en servicio', EQP_AP_EST_OPER: 'Estado: operación',
+      EQP_AP_EST_CONS: 'Estado: conservación' },
+    ocultar: /^(GlobalID|Enabled|OBJECTID|AncillaryRole|SHAPE.*|Shape.*|EQP_AP_USR_.*|EQP_AP_FEC_CR.*|EQP_AP_FEC_AC.*|EQP_AP_VNR_.*|EQP_AP_COD_EMP)$/i });
+
+  // ---- líneas extra de los símbolos compuestos (red BT) ----
+  function dibujarTrazosExtra(c) {
+    const e = estado[c.id];
+    if (e.extras) map.removeLayer(e.extras);
+    e.extras = L.layerGroup();
+    const m = e.modo || {}, activo = $(`${c.id}-porcolor`) ? $(`${c.id}-porcolor`).checked : true;
+    if (activo && m.trazos) e.capa.eachLayer(l => {
+      const t = l.feature && m.trazos[valorDe(e, l.feature)];
+      if (t) t.slice(1).forEach(k => L.polyline(l.getLatLngs(), { renderer: lienzo, color: k.c, weight: k.w, dashArray: k.d || null,
+        opacity: 1, interactive: false }).addTo(e.extras));
+    });
+    if ($(`${c.id}-ver`).checked) e.extras.addTo(map);
+  }
+
+  // ---- pastorales del alumbrado público (brazo + luminaria girados), solo de cerca ----
+  const capaPastorales = L.layerGroup().addTo(map);
+  function dibujarPastorales() {
+    capaPastorales.clearLayers();
+    if (map.getZoom() < 16) return;
+    const vista = map.getBounds().pad(0.1); let n = 0;
+    CAPAS.forEach(c => {
+      const e = estado[c.id];
+      if (!c.pastoral || !e || !e.capa || !map.hasLayer(e.capa)) return;
+      e.capa.eachLayer(l => {
+        if (n > 1500 || !l.feature || !vista.contains(l.getLatLng())) return;
+        const p = map.latLngToLayerPoint(l.getLatLng()), a = (c.anguloDe(l.feature.properties || {}) || 0) * Math.PI / 180;
+        const fin = L.point(p.x + 13 * Math.sin(a), p.y - 13 * Math.cos(a));     // 10 pt en la dirección del pastoral
+        const color = colorDe(c, l.feature);
+        L.polyline([l.getLatLng(), map.layerPointToLatLng(fin)], { renderer: lienzo, color: '#333', weight: 1.5, interactive: false }).addTo(capaPastorales);
+        L.circleMarker(map.layerPointToLatLng(fin), { renderer: lienzo, radius: 5, fillColor: color, fillOpacity: 1, color: '#000', weight: 1, interactive: false }).addTo(capaPastorales);
+        n++;
+      });
+    });
+  }
+  map.on('zoomend moveend', dibujarPastorales);
+
   // ---- puntos dibujados como círculos (postes, etc.): tamaño según el zoom ----
   const factorZoomPunto = () => { const z = map.getZoom(); return z <= 13 ? 0.45 : z === 14 ? 0.6 : z === 15 ? 0.8 : z <= 17 ? 1 : 1.25; };
   function estiloPunto(c, ft) {
@@ -1058,7 +1201,8 @@
       const e = estado[c.id];
       if (!e || !e.capa || !map.hasLayer(e.capa) || !e.modo || !e.modo.flecha || !$(`${c.id}-porcolor`).checked) return;
       e.capa.eachLayer(l => {
-        if (!l.feature || !e.modo.flecha[valorDe(e, l.feature)]) return;
+        const fl = l.feature && e.modo.flecha[valorDe(e, l.feature)];
+        if (!fl) return;
         let ll = l.getLatLngs(); while (Array.isArray(ll[0])) ll = ll[ll.length - 1];
         if (ll.length < 2) return;
         const fin = ll[ll.length - 1]; if (!vista.contains(fin)) return;
@@ -1067,7 +1211,7 @@
         const base = L.point(b.x - largo * Math.cos(ang), b.y - largo * Math.sin(ang));
         const pts = [b, L.point(base.x + medio * Math.sin(ang), base.y - medio * Math.cos(ang)),
                         L.point(base.x - medio * Math.sin(ang), base.y + medio * Math.cos(ang))];
-        L.polygon(pts.map(p => map.layerPointToLatLng(p)), { renderer: lienzo, stroke: false, fillColor: '#000', fillOpacity: 1, interactive: false }).addTo(capaFlechas);
+        L.polygon(pts.map(p => map.layerPointToLatLng(p)), { renderer: lienzo, stroke: false, fillColor: typeof fl === 'string' ? fl : '#000', fillOpacity: 1, interactive: false }).addTo(capaFlechas);
       });
     });
   }
@@ -1098,14 +1242,16 @@
   function colorDe(c, ft) {
     const e = estado[c.id];
     if (!e.campoColor || !$(`${c.id}-porcolor`).checked) return c.color;
+    if (e.modo && e.modo.unico) return c.color;
     return e.colores.get(valorDe(e, ft)) || c.color || '#7f7f7f';
   }
   function estiloDe(c, ft) {
     const e = estado[c.id], m = e.modo || {}, v = e.campoColor ? valorDe(e, ft) : '';
     const activo = $(`${c.id}-porcolor`) ? $(`${c.id}-porcolor`).checked : true;
+    const t = activo && m.trazos && m.trazos[v] && m.trazos[v][0];
     return { color: colorDe(c, ft), opacity: 0.95,
-      weight: (activo && m.ancho && m.ancho[v]) || c.ancho,
-      dashArray: (activo && m.trazo && m.trazo[v]) || null };
+      weight: (t && t.w) || (activo && m.ancho && m.ancho[v]) || c.ancho,
+      dashArray: (t && t.d) || (activo && m.trazo && m.trazo[v]) || null };
   }
   function elegirModo(c, i) {
     const e = estado[c.id], m = (c.modos || [])[i];
@@ -1117,6 +1263,19 @@
   function armarLeyenda(c) {
     const e = estado[c.id], box = $(`${c.id}-leyenda`);
     if (!e.campoColor) { box.hidden = true; return; }
+    if (e.modo && e.modo.unico) {   // símbolo único: sin lista de valores
+      const modosU = (c.modos || []).map((m, i) => ({ m, i, campo: e.campos.find(k => m.campo.test(k)) })).filter(x => x.campo);
+      box.hidden = false;
+      box.innerHTML = `<h3 class="subt">Colores <label class="chk"><input type="checkbox" id="${c.id}-porcolor" checked> activar</label></h3>
+        <div class="campo"><label for="${c.id}-modo">Colorear por</label><select id="${c.id}-modo">
+          ${modosU.map(x => `<option value="${x.i}" ${e.modo === x.m ? 'selected' : ''}>${esc(x.m.nombre)}</option>`).join('')}</select></div>
+        <div class="ley-fila"><span class="muestra" style="background:${c.color};height:10px;width:30px"></span>
+          <b style="font:600 .9rem 'Barlow Semi Condensed',sans-serif">Todos · ${e.gj.features.length.toLocaleString('es-PE')} ${c.unidad || 'elementos'}</b></div>`;
+      e.colores = new Map();
+      $(`${c.id}-porcolor`).onchange = () => { dibujar(c); };
+      $(`${c.id}-modo`).onchange = ev => { elegirModo(c, +ev.target.value); dibujar(c); dibujarFlechas(); };
+      return;
+    }
     const cuenta = new Map(), largo = new Map();
     e.gj.features.forEach(ft => {
       const v = String((ft.properties || {})[e.campoColor] ?? '').trim();
@@ -1164,6 +1323,7 @@
   function dibujar(c) {
     const e = estado[c.id];
     if (e.capa) map.removeLayer(e.capa);
+    if (e.extras) map.removeLayer(e.extras);
     const f = e.filtro;
     e.capa = L.geoJSON(e.gj, {
       renderer: lienzo,
@@ -1180,7 +1340,8 @@
       })
     });
     if ($(`${c.id}-ver`).checked) e.capa.addTo(map);
-    setTimeout(() => { dibujarFlechas(); dibujarEtiquetas(); }, 0);
+    if (c.tipo !== 'punto') dibujarTrazosExtra(c);
+    setTimeout(() => { dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales(); }, 0);
     return e.capa.getLayers().length;
   }
 
@@ -1276,6 +1437,7 @@
       avisar(`Leyendo ${archivo.name}…`);
       const texto = await archivo.text();
       const { gj, avisos } = normalizar(JSON.parse(texto));
+      if (c.derivar) gj.features.forEach(f => c.derivar(f.properties || (f.properties = {})));
       if (!desdeMemoria) BD.guardar(c.id, { nombre: archivo.name, texto }).catch(() => {});
       estado[c.id] = { gj, capa: null, filtro: null, archivo: archivo.name };
       const campos = [...new Set(gj.features.flatMap(f => Object.keys(f.properties || {})))];
@@ -1300,11 +1462,14 @@
 
   CAPAS.forEach(c => {
     $(`${c.id}-archivo`).onchange = ev => { const a = ev.target.files[0]; if (a) cargarArchivo(c, a); ev.target.value = ''; };
-    $(`${c.id}-ver`).onchange = ev => { const e = estado[c.id]; if (e && e.capa) ev.target.checked ? e.capa.addTo(map) : map.removeLayer(e.capa); dibujarFlechas(); };
+    $(`${c.id}-ver`).onchange = ev => { const e = estado[c.id]; if (e && e.capa) ev.target.checked ? e.capa.addTo(map) : map.removeLayer(e.capa);
+      if (e && e.extras) ev.target.checked ? e.extras.addTo(map) : map.removeLayer(e.extras);
+      dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales(); };
     $(`${c.id}-zoom`).onclick = () => { const e = estado[c.id]; if (e && e.capa.getLayers().length) map.fitBounds(e.capa.getBounds(), margen()); };
     $(`${c.id}-quitar`).onclick = () => {
       const e = estado[c.id]; if (e && e.capa) map.removeLayer(e.capa);
-      delete estado[c.id]; dibujarFlechas();
+      if (e && e.extras) map.removeLayer(e.extras);
+      delete estado[c.id]; dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales();
       BD.borrar(c.id).catch(() => {});
       $(`${c.id}-vacio`).hidden = false; $(`${c.id}-lleno`).hidden = true;
       avisar(`Capa quitada del mapa · ${c.nombre}`);
