@@ -82,6 +82,9 @@
     font:700 12px "Barlow Semi Condensed",sans-serif;color:#ff0000;
     text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
   body.ver-etq .etq-sed{display:block}
+  .etq-punto{position:absolute;left:0;top:6px;transform:translateX(-50%);white-space:nowrap;
+    font:600 11px "Barlow Semi Condensed",sans-serif;
+    text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
   /* capas eléctricas */
   .leyenda{margin-top:8px;border-top:1px solid var(--borde);padding-top:6px}
   .leyenda .subt{display:flex;justify-content:space-between;align-items:center}
@@ -847,6 +850,77 @@
   ];
   CAPAS[0].unidad = 'tramos';
 
+  // ---- Postes MT: simbología del archivo "Estructura de Media Tensión.lyr" ----
+  // Valores únicos de Material de Soporte (NOD_COD_MAT_SPT); círculos con borde negro de 1 pt;
+  // Fibra de vidrio 7 pt, demás 6 pt; etiqueta azul con el Código Estructura MT (NOD_COD_NOD).
+  const ALIAS_NOD = {
+    NOD_COD_NOD: 'Código Estructura MT', NOD_COD_SET: 'Código de SET', NOD_COD_ALI: 'Código de salida de MT (alimentador)',
+    NOD_COD_TMT: 'Código de tramo de MT', NOD_COD_INV: 'Inventario: código', NOD_COD_SIE: 'Código de sistema eléctrico',
+    NOD_COD_FNC: 'Función estructura', NOD_COD_TIP_SPT: 'Tipo de soporte', NOD_CNT_SPT: 'Cantidad de postes',
+    NOD_COD_MAT_SPT: 'Material de soporte', NOD_ALT_SPT: 'Altura de soporte', NOD_ESF_SPT: 'Esfuerzo de soporte',
+    NOD_CLS_SPT: 'Clase de soporte', NOD_COD_SPTE: 'Código soporte eléctrico', NOD_COD_TEC_SPTE: 'Código técnico de soporte',
+    NOD_CNT_TER: 'Número de ternas', NOD_SEC_FAS: 'Fases: secuencia', NOD_COD_TIP_ARM_01: 'Armado 01: código',
+    NOD_CNT_TIP_ARM_01: 'Armado 01: cantidad', NOD_DSC_TIP_ARM_01: 'Armado 01: descripción', NOD_AIS_COD_01: 'Aislador 01: código',
+    NOD_AIS_MAT_01: 'Aislador 01: material', NOD_COD_TIP_ARM_02: 'Armado 02: código', NOD_AIS_COD_02: 'Aislador 02: código',
+    NOD_FLAG_ATER: 'Aterramiento', NOD_FLG_TELE: 'Poste telecomunicación', NOD_COD_UBI: 'Ubigeo', NOD_COD_LOC: 'Localidad',
+    NOD_COD_SUC: 'Código sucursal', NOD_COD_OBRA: 'Código obra', NOD_COD_PROP: 'Propietario',
+    NOD_FEC_PTA_SRV: 'Fec. puesta en servicio', NOD_EST_CONS: 'Estado de conservación', NOD_INF_OSI: 'Informado a Osinergmin'
+  };
+  // también reconoce los nombres recortados a 10 letras del shapefile (p. ej. NOD_COD_MA)
+  Object.keys(ALIAS_NOD).forEach(k => { const t = k.slice(0, 10); if (!(t in ALIAS_NOD)) ALIAS_NOD[t] = ALIAS_NOD[k]; });
+  CAPAS.push({ id: 'postes_mt', nombre: 'Postes MT', corto: 'Poste MT', tipo: 'punto', estilo: 'circulo', unidad: 'postes',
+    color: '#009e8f', tamano: 8, borde: '#000000',
+    campoSugerido: /^NOD_COD_ALI?$/i,
+    modos: [
+      { nombre: 'Material de soporte (como ArcMap)', campo: /^NOD_COD_MA(T_SPT)?$/i,
+        clases: { FV: ['#fefd32', 'Fibra de vidrio'], CO: ['#bfbfbf', 'Concreto'], FI: ['#ffb893', 'Fierro'],
+                  FG: ['#db7d7a', 'Fierro galvanizado'], FN: ['#8a1100', 'Fierro negro'], HO: ['#a1e82c', 'Hormigón'],
+                  MA: ['#000000', 'Madera'], NN: ['#000000', 'Ninguno'], RI: ['#885f0c', 'Riel'] },
+        tamano: { FV: 9.3 },                 // 7 pt; el resto 6 pt (8 px)
+        borde: { MA: '#ffffff' } },          // madera: símbolo especial en ArcMap, aquí negro con borde blanco
+      { nombre: 'Alimentador', campo: /^NOD_COD_ALI?$/i }
+    ],
+    etiquetaMapa: p => p.NOD_COD_NOD || p.NOD_COD_NO || '', colorEtiqueta: '#0085fc',
+    titulo: p => 'Poste MT ' + (p.NOD_COD_NOD || p.NOD_COD_NO || ''),
+    etiquetas: ALIAS_NOD,
+    ocultar: /^(GlobalID|OBJECTID|SHAPE.*|Shape.*|NOD_USR_.*|NOD_FEC_CR.*|NOD_FEC_AC.*|NOD_VNR_.*|NOD_COD_EMP?)$/i });
+
+  // ---- puntos dibujados como círculos (postes, etc.): tamaño según el zoom ----
+  const factorZoomPunto = () => { const z = map.getZoom(); return z <= 13 ? 0.45 : z === 14 ? 0.6 : z === 15 ? 0.8 : z <= 17 ? 1 : 1.25; };
+  function estiloPunto(c, ft) {
+    const e = estado[c.id], m = (e && e.modo) || {}, v = e && e.campoColor ? valorDe(e, ft) : '';
+    const activo = $(`${c.id}-porcolor`) ? $(`${c.id}-porcolor`).checked : true;
+    const diam = (activo && m.tamano && m.tamano[v]) || c.tamano || 8;
+    return { renderer: lienzo, radius: diam / 2 * factorZoomPunto(), fillColor: colorDe(c, ft), fillOpacity: 1,
+             color: (activo && m.borde && m.borde[v]) || c.borde || '#000', weight: 1.3, opacity: 1 };
+  }
+  map.on('zoomend', () => CAPAS.forEach(c => {
+    const e = estado[c.id];
+    if (c.estilo === 'circulo' && e && e.capa) e.capa.eachLayer(l => l.feature && l.setRadius(estiloPunto(c, l.feature).radius));
+  }));
+
+  // ---- etiquetas de puntos (código) solo de cerca y solo en la zona visible ----
+  const capaEtiquetas = L.layerGroup().addTo(map);
+  function dibujarEtiquetas() {
+    capaEtiquetas.clearLayers();
+    if (map.getZoom() < 17) return;   // OpenTopoMap llega hasta zoom 17
+    const vista = map.getBounds(); let n = 0;
+    CAPAS.forEach(c => {
+      const e = estado[c.id];
+      if (c.estilo !== 'circulo' || !c.etiquetaMapa || !e || !e.capa || !map.hasLayer(e.capa)) return;
+      e.capa.eachLayer(l => {
+        if (n > 400 || !l.feature || !vista.contains(l.getLatLng())) return;
+        const t = c.etiquetaMapa(l.feature.properties || {}); if (!t) return;
+        L.marker(l.getLatLng(), { interactive: false, keyboard: false,
+          icon: L.divIcon({ className: '', iconSize: [0, 0],
+            html: `<span class="etq-punto" style="color:${c.colorEtiqueta || '#d00'}">${esc(t)}</span>` }) }).addTo(capaEtiquetas);
+        n++;
+      });
+    });
+  }
+  map.on('zoomend moveend', dibujarEtiquetas);
+
+
   // Símbolo SED reproducido del archivo Subestación.lyr (ArcMap):
   // 3 capas de marcador de carácter (fuente ESRI Default Marker), mismo color:
   //   triángulo (car. 35, 23 pt, desplazado +4.6 pt arriba)
@@ -1073,7 +1147,8 @@
     box.querySelectorAll('.ley-color').forEach(inp => {
       inp.oninput = () => {  // cambia el color en vivo, sin recargar
         e.colores.set(inp.dataset.v, inp.value);
-        if (c.tipo === 'punto') dibujar(c);
+        if (c.estilo === 'circulo' && e.capa) e.capa.setStyle(ft => estiloPunto(c, ft));
+        else if (c.tipo === 'punto') dibujar(c);
         else if (e.capa) e.capa.setStyle(ft => estiloDe(c, ft));
         pintarChips(c);
       };
@@ -1093,18 +1168,19 @@
     e.capa = L.geoJSON(e.gj, {
       renderer: lienzo,
       filter: ft => !f || f.valores.has(txt(ft.properties && ft.properties[f.campo])),
-      style: ft => estiloDe(c, ft),
+      style: ft => c.estilo === 'circulo' ? estiloPunto(c, ft) : estiloDe(c, ft),
       pointToLayer: (ft, ll) => c.icono
         ? L.marker(ll, { icon: L.divIcon({ className: 'ico-capa', iconSize: [24, 26], iconAnchor: [12, 15],
             html: `<div class="sed-ico">${c.icono(colorDe(c, ft))}</div>` +
                   (c.etiquetaMapa ? `<span class="etq-sed">${esc(c.etiquetaMapa(ft.properties || {}))}</span>` : '') }) })
-        : L.circleMarker(ll, { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
+        : L.circleMarker(ll, c.estilo === 'circulo' ? estiloPunto(c, ft)
+            : { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
       onEachFeature: (ft, lyr) => lyr.on('click', ev => {
         L.popup({ maxWidth: 320 }).setLatLng(ev.latlng).setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
       })
     });
     if ($(`${c.id}-ver`).checked) e.capa.addTo(map);
-    setTimeout(dibujarFlechas, 0);
+    setTimeout(() => { dibujarFlechas(); dibujarEtiquetas(); }, 0);
     return e.capa.getLayers().length;
   }
 
