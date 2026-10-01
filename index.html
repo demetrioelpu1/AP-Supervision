@@ -108,6 +108,12 @@
   .tr-otras{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:.8rem;color:var(--muted);cursor:pointer}
   @media (max-width:600px){ .trabajo{left:8px;right:auto;width:calc(100% - 70px);top:calc(64px + env(safe-area-inset-top,0px))}
     body.con-trabajo .columna{top:calc(64px + 245px + env(safe-area-inset-top,0px))} }
+  /* elegir entre varios AP del mismo poste */
+  .elegir-ap b{display:block;font-size:.95rem}
+  .elegir-ap>small{display:block;color:#5a6b64;margin-bottom:6px}
+  .elegir-ap button{display:block;width:100%;text-align:left;margin-top:5px;padding:8px 10px;border-radius:7px;cursor:pointer;
+    font:600 .9rem "Barlow Semi Condensed",sans-serif;background:#0a6cff;color:#fff;border:0}
+  .elegir-ap button small{display:block;font-weight:400;opacity:.9}
   /* mapas sin internet */
   .rc-lista{list-style:none;margin:0;padding:0}
   .rc-lista li{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--borde)}
@@ -1277,6 +1283,10 @@
           L.polyline([ll1, ll2], { renderer: lienzo, color: '#fff', weight: 5, interactive: false, lineCap: 'round' }).addTo(capaPastorales); // halo blanco
           L.polyline([ll1, ll2], { renderer: lienzo, color: colorX, weight: 3, interactive: false, lineCap: 'round' }).addTo(capaPastorales);
         });
+        // zona táctil invisible sobre la X: permite elegir cada AP aunque haya dos en el mismo poste
+        const ftAP = l.feature;
+        L.circleMarker(map.layerPointToLatLng(fin), { renderer: lienzo, radius: 11, opacity: 0, fillOpacity: 0, interactive: true })
+          .on('click', ev => { L.DomEvent.stop(ev); tocarAP(c, ftAP, map.layerPointToLatLng(fin)); }).addTo(capaPastorales);
         n++;
       });
     });
@@ -1644,8 +1654,8 @@
             : { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
       onEachFeature: (ft, lyr) => lyr.on('click', ev => {
         if (c.id === 'sed') seleccionarSED(ft);
-        if (trabajo && c.id === 'ap' && perteneceSED(c, ft)) { abrirFormularioAP(ft); return; }
-        if (trabajo && c.id === 'postes_bt') { const apP = apEnPoste(ft, ev.latlng); if (apP) { abrirFormularioAP(apP); return; } }
+        if (trabajo && c.id === 'ap' && perteneceSED(c, ft)) { elegirAPdePoste(apsMismoPoste(ft), ev.latlng); return; }
+        if (trabajo && c.id === 'postes_bt') { const aps = apsEnPoste(ft, ev.latlng); if (aps.length) { elegirAPdePoste(aps, ev.latlng); return; } }
         L.popup({ maxWidth: 320 }).setLatLng(ev.latlng).setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
       })
     });
@@ -1823,18 +1833,41 @@
   const CAPAS_SED = [['bt', 'Red BT'], ['postes_bt', 'Postes BT'], ['ap', 'AP']];
 
   // AP de la SED de trabajo instalado en ese poste (por código de poste o, si no, el más cercano a menos de 6 m)
-  function apEnPoste(ftPoste, ll) {
-    const cAP = CAPAS.find(k => k.id === 'ap'), e = estado.ap; if (!e) return null;
+  // todos los AP de la SED de trabajo instalados en ese poste (por código de poste, o a menos de 6 m)
+  function apsEnPoste(ftPoste, ll) {
+    const cAP = CAPAS.find(k => k.id === 'ap'), e = estado.ap; if (!e) return [];
     const cod = normTxt(campo(ftPoste.properties || {}, 'NOD_COD_NOD', 'NOD_COD_NO'));
-    let mejor = null, dmin = 6;
+    const porCodigo = [], cerca = [];
     e.gj.features.forEach(f => {
       if (!perteneceSED(cAP, f)) return;
-      if (cod && normTxt(campo(f.properties || {}, 'EQP_AP_COD_NOD')) === cod) { mejor = f; dmin = -1; return; }
-      if (dmin < 0) return;
-      const d = map.distance(ll, [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
-      if (d < dmin) { dmin = d; mejor = f; }
+      if (cod && normTxt(campo(f.properties || {}, 'EQP_AP_COD_NOD')) === cod) porCodigo.push(f);
+      else if (map.distance(ll, [f.geometry.coordinates[1], f.geometry.coordinates[0]]) < 6) cerca.push(f);
     });
-    return mejor;
+    return porCodigo.length ? porCodigo : cerca;
+  }
+  // AP de la SED de trabajo en el mismo poste que este AP (mismo código de poste o a menos de 1,5 m)
+  function apsMismoPoste(ftAP) {
+    const cAP = CAPAS.find(k => k.id === 'ap'), e = estado.ap, p0 = ftAP.properties || {};
+    const cod = normTxt(campo(p0, 'EQP_AP_COD_NOD')), ll = [ftAP.geometry.coordinates[1], ftAP.geometry.coordinates[0]];
+    const lista = e.gj.features.filter(f => perteneceSED(cAP, f) && (f === ftAP ||
+      (cod && normTxt(campo(f.properties || {}, 'EQP_AP_COD_NOD')) === cod) ||
+      map.distance(ll, [f.geometry.coordinates[1], f.geometry.coordinates[0]]) < 1.5));
+    return lista.length ? lista : [ftAP];
+  }
+  // al tocar un AP (su X o su poste): formulario si es de la SED de trabajo; si no, sus datos
+  function tocarAP(c, ft, ll) {
+    if (trabajo && perteneceSED(c, ft)) { abrirFormularioAP(ft); return; }
+    L.popup({ maxWidth: 320 }).setLatLng(ll).setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
+  }
+  // si hay varios AP en el mismo poste, se muestra una lista para elegir cuál registrar
+  function elegirAPdePoste(lista, ll) {
+    if (lista.length === 1) { abrirFormularioAP(lista[0]); return; }
+    const dir = g => ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(((g % 360) + 360) % 360 / 45) % 8];
+    const html = `<div class="elegir-ap"><b>Este poste tiene ${lista.length} AP</b><small>¿Cuál vas a registrar?</small>` +
+      lista.map((f, i) => { const id = idAP(f.properties || {}), hecho = registros.has(id);
+        return `<button data-i="${i}">${esc(id)} <small>pastoral hacia ${dir(anguloAP(f))}${hecho ? ' · ✔ registrado' : ''}</small></button>`; }).join('') + '</div>';
+    const pop = L.popup({ maxWidth: 280 }).setLatLng(ll).setContent(html).openOn(map);
+    pop.getElement().querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { map.closePopup(); abrirFormularioAP(lista[+b.dataset.i]); });
   }
   function contarTrabajo() {
     return CAPAS_SED.map(([id]) => { const c = CAPAS.find(k => k.id === id), e = estado[id];
@@ -1922,13 +1955,19 @@
 
   const idAP = p => String(campo(p, 'EQP_AP_COD_EQP_AP') || '');
   const capaInspeccion = L.layerGroup().addTo(map);
-  const iconoInspeccion = L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
-    html: `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,.9)" stroke="#000" stroke-width="2.2"/>
-           <path d="M6.6 6.6L17.4 17.4M17.4 6.6L6.6 17.4" stroke="#000" stroke-width="2.4" stroke-linecap="round"/></svg>` });
+  // círculo naranja con borde negro y X negra, puesto en la punta del pastoral (donde está la X del AP)
+  function iconoInspeccion(ang) {
+    const a = (+ang || 0) * Math.PI / 180, dx = 19.5 * Math.sin(a), dy = -19.5 * Math.cos(a);
+    return L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12 - dx, 12 - dy],
+      html: `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#ff8c00" stroke="#000" stroke-width="2.2"/>
+             <path d="M6.6 6.6L17.4 17.4M17.4 6.6L6.6 17.4" stroke="#000" stroke-width="2.4" stroke-linecap="round"/></svg>` });
+  }
+  const anguloAP = ft => { const c = CAPAS.find(k => k.id === 'ap'); return ft ? (c.anguloDe(ft.properties || {}) || 0) : 0; };
   function dibujarInspeccionados() {
     capaInspeccion.clearLayers();
     registros.forEach(r => {
-      L.marker([r.lat, r.lon], { icon: iconoInspeccion, zIndexOffset: 1500, title: 'AP inspeccionado ' + r.id })
+      const ang = r.ang != null ? r.ang : anguloAP(buscarFeatureAP(r.id));
+      L.marker([r.lat, r.lon], { icon: iconoInspeccion(ang), zIndexOffset: 1500, title: 'AP inspeccionado ' + r.id })
         .on('click', () => { const ft = buscarFeatureAP(r.id); abrirFormularioAP(ft, r); }).addTo(capaInspeccion);
     });
   }
@@ -2039,7 +2078,7 @@
     const ll = ft ? L.latLng(ft.geometry.coordinates[1], ft.geometry.coordinates[0]) : L.latLng(previo.lat, previo.lon);
     // marca inmediata con el círculo y la X negra
     marcaTemporal.clearLayers();
-    if (!previo) L.marker(ll, { icon: iconoInspeccion, interactive: false, zIndexOffset: 1600 }).addTo(marcaTemporal);
+    if (!previo) L.marker(ll, { icon: iconoInspeccion(ft ? anguloAP(ft) : 0), interactive: false, zIndexOffset: 1600 }).addTo(marcaTemporal);
     fActual = { ft, id, previo, ll, fotos: { pan: null, det: null } };
     // encabezado: la SED y sus dos códigos
     const sedEtq = previo ? previo.sedEtq : trabajo && trabajo.etq, sielse = previo ? previo.sielse : trabajo && trabajo.sielse;
@@ -2079,6 +2118,7 @@
     const ahora = new Date();
     const reg = {
       id: fActual.id, lat: fActual.ll.lat, lon: fActual.ll.lng,
+      ang: fActual.ft ? anguloAP(fActual.ft) : (pr.ang != null ? pr.ang : 0),
       sedCod: pr.sedCod || (trabajo && trabajo.cod) || '', sedEtq: pr.sedEtq || (trabajo && trabajo.etq) || '',
       sielse: pr.sielse || (trabajo && trabajo.sielse) || '', sedNombre: pr.sedNombre || (trabajo && trabajo.nombre) || '',
       poste: campo(p, 'EQP_AP_COD_NOD') || pr.poste || '',
