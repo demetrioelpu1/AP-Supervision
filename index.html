@@ -325,6 +325,12 @@
       <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
     </svg>
   </button>
+  <button id="b-codigo" class="ico" aria-pressed="false" aria-label="Buscar código" data-tip="Buscar código" aria-controls="codigo">
+    <!-- código de barras con lupa -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M3 5v10M6 5v10M8.5 5v10M11.5 5v6M14 5v3M17 5v3"/><circle cx="16" cy="15" r="3.5"/><path d="M18.6 17.6L21 20"/>
+    </svg>
+  </button>
   <button id="b-buscar" class="ico" aria-pressed="false" aria-label="Buscar lugar" data-tip="Buscar lugar" aria-controls="buscar">
     <!-- lupa -->
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -398,6 +404,18 @@
   </details>
 </section>
 
+<section id="codigo" class="datos" aria-label="Buscar código" hidden>
+  <h2 class="tit-datos">Buscar código</h2>
+  <div class="caja-busca">
+    <input id="qc" type="search" placeholder="Ej.: SE05346, NMT000070052, EAP001620553" autocomplete="off" aria-label="Código a buscar">
+    <button id="b-qc" aria-label="Buscar código">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+    </button>
+  </div>
+  <p class="ayuda" id="qc-estado">Busca en todas las capas cargadas: SED, postes, AP, tramos, alimentadores… Basta con una parte del código.</p>
+  <ul id="qc-resultados" class="resultados"></ul>
+</section>
+
 <section id="buscar" class="datos" aria-label="Buscar lugar" hidden>
   <h2 class="tit-datos">Buscar lugar</h2>
   <div class="caja-busca">
@@ -469,7 +487,7 @@
   // en el celular, cierra el panel abierto para dejar ver el mapa
   function cerrarPanelesMovil() {
     if (!esMovil()) return;
-    ['buscar', 'ir', 'capas'].forEach(id => { const el = $(id); if (el && !el.hidden) abrirPanel(id); });
+    ['codigo', 'buscar', 'ir', 'capas'].forEach(id => { const el = $(id); if (el && !el.hidden) abrirPanel(id); });
   }
 
   // ---------- Mapas base ----------
@@ -726,7 +744,7 @@
   // Motor principal: Photon (komoot). Respaldo: Nominatim (OSM).
   const panelBus = $('buscar'), bBus = $('b-buscar');
   function abrirPanel(cual) { // solo un panel grande abierto a la vez
-    const paneles = { buscar: ['buscar', 'b-buscar'], ir: ['ir', 'b-ir'], capas: ['capas', 'b-capas'] };
+    const paneles = { codigo: ['codigo', 'b-codigo'], buscar: ['buscar', 'b-buscar'], ir: ['ir', 'b-ir'], capas: ['capas', 'b-capas'] };
     const abrir = $(paneles[cual][0]).hidden;
     Object.entries(paneles).forEach(([k, [pid, bid]]) => {
       const on = k === cual && abrir;
@@ -861,7 +879,7 @@
       etiquetaLineas: p => [p.SED_ETQ_SED || p.SED_ETQ_SE, p.SED_ETQ_SIELSE || p.SED_ETQ_SI],
       titulo: p => 'SED ' + (p.SED_ETQ_SE || p.SED_ETQ_SED || '') + (p.SED_NOM_SE || p.SED_NOM_SED ? ' · ' + (p.SED_NOM_SE || p.SED_NOM_SED) : ''),
       etiquetas: {                              // alias de campo del archivo .lyr
-        SED_ETQ_SE: 'Etiqueta de campo', SED_COD__1: 'Código SED', SED_NOM_SE: 'Nombre SED', SED_DIR_SE: 'Dirección SED',
+        SED_ETQ_SE: 'Etiqueta de campo', SED_ETQ_SED: 'Etiqueta de campo', SED_ETQ_SI: 'Código SIELSE', SED_ETQ_SIELSE: 'Código SIELSE', SED_COD__1: 'Código SED', SED_NOM_SE: 'Nombre SED', SED_DIR_SE: 'Dirección SED',
         SED_COD_AL: 'Código de salida MT (alimentador)', SED_COD_SI: 'Código de SET', SED_COD_TM: 'Código tramo MT',
         SED_COD_NO: 'Código estructura', SED_CLS_SE: 'Sed: clase', SED_USO_SE: 'Tipo uso', SED_TIP_SE: 'Tipo SED',
         SED_TIP_SI: 'Tipo instalación eléctrica', SED_POT_IN: 'Potencia instalada (kVA)', SED_POT_SE: 'Potencia de SED',
@@ -899,14 +917,14 @@
   // también reconoce los nombres recortados a 10 letras del shapefile (p. ej. NOD_COD_MA)
   Object.keys(ALIAS_NOD).forEach(k => { const t = k.slice(0, 10); if (!(t in ALIAS_NOD)) ALIAS_NOD[t] = ALIAS_NOD[k]; });
   CAPAS.push({ id: 'postes_mt', nombre: 'Postes MT', corto: 'Poste MT', tipo: 'punto', estilo: 'circulo', unidad: 'postes',
-    color: '#009e8f', tamano: 8, borde: '#000000',
+    color: '#009e8f', tamano: 9.3, borde: '#000000',     // 7 pt (intercambiado con postes BT a pedido del usuario)
     campoSugerido: /^NOD_COD_ALI?$/i,
     modos: [
       { nombre: 'Material de soporte (como ArcMap)', campo: /^NOD_COD_MA(T_SPT)?$/i,
         clases: { FV: ['#fefd32', 'Fibra de vidrio'], CO: ['#00e640', 'Concreto'], FI: ['#ffb893', 'Fierro'],
                   FG: ['#db7d7a', 'Fierro galvanizado'], FN: ['#8a1100', 'Fierro negro'], HO: ['#a1e82c', 'Hormigón'],
                   MA: ['#ff00ff', 'Madera'], NN: ['#000000', 'Ninguno'], RI: ['#885f0c', 'Riel'] },
-        tamano: { FV: 9.3 } },               // 7 pt; el resto 6 pt (8 px). Concreto y madera: colores pedidos por el usuario
+      },                                   // concreto y madera: colores pedidos por el usuario
       { nombre: 'Alimentador', campo: /^NOD_COD_ALI?$/i }
     ],
     // sin etiqueta en el mapa: solo el símbolo del poste (el código se ve al tocarlo)
@@ -968,7 +986,7 @@
   // Valores únicos de Material (NOD_COD_MAT_SPT), círculos de 7 pt con borde negro; etiqueta roja
   // con el Código Estructura BT (NOD_COD_NOD), que no se muestra cuando el material es "Ninguno".
   CAPAS.push({ id: 'postes_bt', nombre: 'Postes BT', corto: 'Poste BT', tipo: 'punto', estilo: 'circulo', unidad: 'postes',
-    color: '#fefd32', tamano: 9.3, borde: '#000000',
+    color: '#fefd32', tamano: 8, borde: '#000000',       // 6 pt (intercambiado con postes MT a pedido del usuario)
     campoSugerido: /^NOD_COD_SED$/i,
     modos: [
       { nombre: 'Material del poste (como ArcMap)', campo: /^NOD_COD_MA(T_SPT)?$/i,
@@ -1572,6 +1590,71 @@
   });
 
   actualizarResumen();
+
+  // =================== BUSCADOR DE CÓDIGOS (en todas las capas cargadas) ===================
+  const normCod = v => String(v ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+  const capaResaltado = L.layerGroup().addTo(map);
+  let tResaltado, resultadosCod = [];
+  $('b-codigo').onclick = () => { if (abrirPanel('codigo')) $('qc').focus(); };
+
+  function buscarCodigo(texto) {
+    const q = normCod(texto);
+    const lista = $('qc-resultados'), info = $('qc-estado');
+    if (q.length < 3) { lista.innerHTML = ''; info.textContent = 'Escribe al menos 3 caracteres del código.'; return; }
+    const cargadas = CAPAS.filter(c => estado[c.id]);
+    if (!cargadas.length) { lista.innerHTML = ''; info.textContent = 'Primero carga alguna capa (Capas eléctricas).'; return; }
+    const hallados = [];
+    cargadas.forEach(c => {
+      const et = c.etiquetas || {};
+      estado[c.id].gj.features.forEach(ft => {
+        const p = ft.properties || {}; let mejor = null;
+        for (const k in p) {
+          const v = p[k];
+          if (v == null || typeof v === 'object' || (c.ocultar && c.ocultar.test(k))) continue;
+          if (typeof v === 'number' && !Number.isInteger(v)) continue;     // no busca en longitudes, áreas, etc.
+          const nv = normCod(v); if (!nv.includes(q)) continue;
+          // prioridad: exacto > empieza igual > contiene; y los campos con nombre conocido primero
+          const pts = (nv === q ? 0 : nv.startsWith(q) ? 10 : 20) + (k in et ? 0 : 3) + Math.min(nv.length - q.length, 9) * 0.1;
+          if (!mejor || pts < mejor.pts) mejor = { pts, k, v };
+        }
+        if (mejor) hallados.push({ c, ft, ...mejor });
+      });
+    });
+    hallados.sort((a, b) => a.pts - b.pts);
+    resultadosCod = hallados.slice(0, 60);
+    info.textContent = hallados.length
+      ? `${hallados.length.toLocaleString('es-PE')} resultado(s)${hallados.length > 60 ? ' · se muestran los 60 más parecidos' : ''}. Toca uno para ir.`
+      : 'No se encontró ese código en las capas cargadas.';
+    lista.innerHTML = resultadosCod.map((r, i) => {
+      const alias = (r.c.etiquetas || {})[r.k] || r.k;
+      const tit = r.c.titulo ? arreglarTexto(r.c.titulo(r.ft.properties || {})) : r.c.corto;
+      return `<li><button data-i="${i}"><b>${esc(r.v)}</b><span><em>${esc(r.c.nombre)}</em> · ${esc(alias)}${tit && !String(tit).includes(String(r.v)) ? ' · ' + esc(tit) : ''}</span></button></li>`;
+    }).join('');
+  }
+  let tCod;
+  $('qc').addEventListener('input', ev => { clearTimeout(tCod); tCod = setTimeout(() => buscarCodigo(ev.target.value), 300); });
+  $('qc').addEventListener('keydown', ev => { if (ev.key === 'Enter') { clearTimeout(tCod); buscarCodigo(ev.target.value); } });
+  $('b-qc').onclick = () => buscarCodigo($('qc').value);
+
+  $('qc-resultados').addEventListener('click', ev => {
+    const btn = ev.target.closest('button[data-i]'); if (!btn) return;
+    const { c, ft } = resultadosCod[+btn.dataset.i];
+    // si la capa estaba oculta, se vuelve a mostrar
+    const ck = $(`${c.id}-ver`); if (!ck.checked) { ck.checked = true; ck.dispatchEvent(new Event('change')); }
+    // resalta el elemento con un anillo celeste (funciona aunque un filtro lo esté ocultando)
+    capaResaltado.clearLayers(); clearTimeout(tResaltado);
+    const marca = L.geoJSON(ft, {
+      style: { color: '#00e5ff', weight: 9, opacity: 0.75 },
+      pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 16, color: '#00e5ff', weight: 4, fillOpacity: 0.1, fillColor: '#00e5ff' })
+    }).addTo(capaResaltado);
+    const b = marca.getBounds(), centro = b.getCenter();
+    cerrarPanelesMovil();
+    if (b.getNorthEast().equals(b.getSouthWest())) map.setView(centro, Math.max(map.getZoom(), 17), { animate: false });
+    else map.fitBounds(b, margen({ maxZoom: 18 }));
+    L.popup({ maxWidth: 320 }).setLatLng(centro)
+      .setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
+    tResaltado = setTimeout(() => capaResaltado.clearLayers(), 15000);   // el anillo se quita solo
+  });
 
   // ---- archivos compartidos desde WhatsApp (Compartir → AP) ----
   // El service worker (sw.js) recibe el archivo y lo deja guardado; aquí se carga en la capa que corresponde.
