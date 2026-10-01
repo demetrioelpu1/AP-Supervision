@@ -1,5 +1,5 @@
 // Service worker de la herramienta AP: instalación como app, copia sin señal y recepción de archivos compartidos
-const CACHE = 'ap-v7';
+const CACHE = 'ap-v8';
 const BASE = ['./', './index.html', './manifest.webmanifest', './icono_AP_192.png', './icono_AP_512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'];

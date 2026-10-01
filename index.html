@@ -85,6 +85,23 @@
   .etq-punto{position:absolute;left:0;top:6px;transform:translateX(-50%);white-space:nowrap;
     font:600 11px "Barlow Semi Condensed",sans-serif;
     text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
+  /* resumen de capas cargadas */
+  .resumen{border-top:1px solid var(--borde);padding-top:6px}
+  .res-fila{display:flex;align-items:center;gap:8px;padding:4px 0}
+  .res-fila.oculta .res-nombre,.res-fila.oculta .muestra{opacity:.4}
+  .res-nombre{flex:1;font:600 .9rem "Barlow Semi Condensed",sans-serif;line-height:1.1}
+  .res-nombre small{display:block;font:400 .74rem "Barlow",sans-serif;color:var(--muted)}
+  .res-ojo,.res-borrar{width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:6px;cursor:pointer;
+    background:transparent;border:1px solid var(--borde);color:var(--ink);padding:0}
+  .res-ojo svg,.res-borrar svg{width:17px;height:17px}
+  .res-borrar{color:#ff8f8f}
+  .res-ojo:hover,.res-borrar:hover{background:var(--panel-2)}
+  .res-todo{width:100%;margin-top:6px;color:#ff8f8f !important;border-color:#7a3a3a !important}
+  details.capa-bloque>summary{cursor:pointer;list-style:none}
+  details.capa-bloque>summary::-webkit-details-marker{display:none}
+  details.capa-bloque>summary::after{content:"▸";margin-left:auto;color:var(--muted);transition:transform .15s}
+  details.capa-bloque[open]>summary::after{transform:rotate(90deg)}
+  .estado-capa{font-size:.74rem;color:var(--muted);font-weight:400}
   /* capas eléctricas */
   .leyenda{margin-top:8px;border-top:1px solid var(--borde);padding-top:6px}
   .leyenda .subt{display:flex;justify-content:space-between;align-items:center}
@@ -356,6 +373,8 @@
 
 <section id="capas" class="datos" aria-label="Capas eléctricas" hidden>
   <h2 class="tit-datos">Capas eléctricas</h2>
+  <div id="resumen-capas" class="resumen"></div>
+  <p class="ayuda" style="margin-top:8px">Para cargar: en WhatsApp, mantén presionado el archivo → ⋮ → Compartir → <b>AP Supervisión</b>. En la PC, arrástralo al mapa.</p>
   <div id="lista-capas"></div>
   <details class="origen">
     <summary>Si tu archivo está en UTM (metros)</summary>
@@ -1092,11 +1111,11 @@
 
   // ---- construir el bloque de cada capa en el panel ----
   $('lista-capas').innerHTML = CAPAS.map(c => `
-    <div class="capa-bloque" id="blk-${c.id}">
-      <div class="capa-cab"><span class="muestra" style="background:${c.color}"></span><b>${c.nombre}</b></div>
+    <details class="capa-bloque" id="blk-${c.id}">
+      <summary class="capa-cab"><span class="muestra" style="background:${c.color}"></span><b>${c.nombre}</b>
+        <small class="estado-capa" id="${c.id}-cuenta">sin cargar</small></summary>
       <div id="${c.id}-vacio">
         <label class="b-cargar">Cargar GeoJSON<input type="file" id="${c.id}-archivo" hidden></label>
-        <p class="ayuda">En el celular: en WhatsApp, mantén presionado el archivo → Compartir → <b>AP</b>. En la PC puedes arrastrarlo al mapa.</p>
       </div>
       <div id="${c.id}-lleno" hidden>
         <p class="ayuda" id="${c.id}-info"></p>
@@ -1118,7 +1137,45 @@
         <p class="ayuda" id="${c.id}-festado" style="margin-top:6px"></p>
         <div id="${c.id}-leyenda" class="leyenda" hidden></div>
       </div>
-    </div>`).join('');
+    </details>`).join('');
+
+  // ---- resumen: capas cargadas con mostrar/ocultar y borrar (una por una o todas) ----
+  function actualizarResumen() {
+    const box = $('resumen-capas'), cargadas = CAPAS.filter(c => estado[c.id]);
+    CAPAS.forEach(c => { const e = estado[c.id];
+      $(`${c.id}-cuenta`).textContent = e ? `${e.gj.features.length.toLocaleString('es-PE')} ${c.unidad || 'elementos'}` : 'sin cargar'; });
+    if (!cargadas.length) { box.innerHTML = '<p class="ayuda">Aún no hay capas cargadas.</p>'; return; }
+    box.innerHTML = `<h3 class="subt">Capas cargadas</h3>` + cargadas.map(c => {
+      const visible = $(`${c.id}-ver`).checked;
+      return `<div class="res-fila${visible ? '' : ' oculta'}">
+        <button class="res-ojo" data-id="${c.id}" aria-label="${visible ? 'Ocultar' : 'Mostrar'} ${esc(c.nombre)}" title="${visible ? 'Ocultar' : 'Mostrar'}">
+          ${visible ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.3 2 12 2 12s3.5 7 10 7c1.8 0 3.3-.5 4.6-1.2"/></svg>'}
+        </button>
+        <span class="muestra" style="background:${c.color}"></span>
+        <span class="res-nombre">${esc(c.nombre)}<small>${estado[c.id].gj.features.length.toLocaleString('es-PE')} ${c.unidad || 'elementos'}</small></span>
+        <button class="res-borrar" data-id="${c.id}" aria-label="Borrar ${esc(c.nombre)}" title="Borrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+        </button></div>`; }).join('') +
+      `<div class="botones" style="margin-top:6px">
+        <button class="b-sec" id="res-mostrar">Mostrar todas</button>
+        <button class="b-sec" id="res-ocultar">Ocultar todas</button>
+      </div>
+      <button class="b-sec res-todo" id="res-borrar-todo">Borrar todas las capas</button>`;
+    const verCapa = (id, v) => { const ck = $(`${id}-ver`); if (ck.checked !== v) { ck.checked = v; ck.dispatchEvent(new Event('change')); } };
+    box.querySelectorAll('.res-ojo').forEach(b => b.onclick = () => { verCapa(b.dataset.id, !$(`${b.dataset.id}-ver`).checked); actualizarResumen(); });
+    box.querySelectorAll('.res-borrar').forEach(b => b.onclick = () => {
+      const c = CAPAS.find(k => k.id === b.dataset.id);
+      if (confirm(`¿Borrar la capa "${c.nombre}"?\nTendrás que volver a cargarla para verla.`)) $(`${c.id}-quitar`).click();
+    });
+    $('res-mostrar').onclick = () => { cargadas.forEach(c => verCapa(c.id, true)); actualizarResumen(); };
+    $('res-ocultar').onclick = () => { cargadas.forEach(c => verCapa(c.id, false)); actualizarResumen(); };
+    $('res-borrar-todo').onclick = () => {
+      if (confirm(`¿Borrar las ${cargadas.length} capas cargadas?\nTendrás que volver a cargarlas para verlas.`)) {
+        cargadas.forEach(c => $(`${c.id}-quitar`).click()); avisar('Se borraron todas las capas');
+      }
+    };
+  }
 
   const panelCapas = $('capas'), bCapas = $('b-capas');
   bCapas.onclick = () => abrirPanel('capas');
@@ -1454,6 +1511,7 @@
       $(`${c.id}-info`).innerHTML = `<b>${esc(archivo.name)}</b> · ${n.toLocaleString('es-PE')} elemento(s) · ${campos.length} campo(s)` +
         (avisos.length ? '<br>' + avisos.map(esc).join('<br>') : '');
       if (!desdeMemoria) { cerrarPanelesMovil(); map.fitBounds(estado[c.id].capa.getBounds(), margen()); }
+      actualizarResumen();
       avisar(`Capa cargada · ${c.nombre}: ${n.toLocaleString('es-PE')} elemento(s)`, avisos.some(a => a.startsWith('⚠')));
     } catch (err) {
       avisar(`No se pudo leer ${archivo.name}: ${err.message}`, true);
@@ -1464,7 +1522,7 @@
     $(`${c.id}-archivo`).onchange = ev => { const a = ev.target.files[0]; if (a) cargarArchivo(c, a); ev.target.value = ''; };
     $(`${c.id}-ver`).onchange = ev => { const e = estado[c.id]; if (e && e.capa) ev.target.checked ? e.capa.addTo(map) : map.removeLayer(e.capa);
       if (e && e.extras) ev.target.checked ? e.extras.addTo(map) : map.removeLayer(e.extras);
-      dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales(); };
+      dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales(); actualizarResumen(); };
     $(`${c.id}-zoom`).onclick = () => { const e = estado[c.id]; if (e && e.capa.getLayers().length) map.fitBounds(e.capa.getBounds(), margen()); };
     $(`${c.id}-quitar`).onclick = () => {
       const e = estado[c.id]; if (e && e.capa) map.removeLayer(e.capa);
@@ -1472,6 +1530,7 @@
       delete estado[c.id]; dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales();
       BD.borrar(c.id).catch(() => {});
       $(`${c.id}-vacio`).hidden = false; $(`${c.id}-lleno`).hidden = true;
+      actualizarResumen();
       avisar(`Capa quitada del mapa · ${c.nombre}`);
     };
     $(`${c.id}-campo`).onchange = () => llenarValores(c);
@@ -1485,6 +1544,8 @@
     $(`${c.id}-valor`).addEventListener('keydown', ev => { if (ev.key === 'Enter') aplicar(); });
     $(`${c.id}-limpiar`).onclick = () => { estado[c.id].filtro = null; refrescarFiltro(c, false); };
   });
+
+  actualizarResumen();
 
   // ---- archivos compartidos desde WhatsApp (Compartir → AP) ----
   // El service worker (sw.js) recibe el archivo y lo deja guardado; aquí se carga en la capa que corresponde.
