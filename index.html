@@ -130,7 +130,7 @@
   .f-opc button .quitar-tipo{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:.7}
   .f-opc button.agregar-tipo{flex:0 0 auto;border-style:dashed;color:#8fc1ff}
   /* ficha de la SED plegada: queda solo la inspección */
-  .tr-mini{display:none;width:28px;height:28px;margin-left:8px}
+  .tr-mini{display:none;width:28px;height:28px;margin-left:6px}
   .tr-avance-txt em{display:none;font-style:normal;color:#8fc1ff;font-weight:600}
   .trabajo.plegada .tr-fila,.trabajo.plegada .tr-chips,.trabajo.plegada .tr-otras{display:none}
   .trabajo.plegada .tr-avance{margin-top:0;border-top:0;padding-top:0}
@@ -205,6 +205,12 @@
   .r-vacio{color:var(--muted);font-size:.88rem;padding:14px 0;cursor:default !important;border:0 !important}
 
   /* resumen de capas cargadas */
+  .res-det>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;
+    padding:6px 8px;border:1px solid var(--borde);border-radius:7px}
+  .res-det>summary::-webkit-details-marker{display:none}
+  .res-det>summary::after{content:"▸";color:var(--muted);transition:transform .15s}
+  .res-det[open]>summary::after{transform:rotate(90deg)}
+  .res-det[open]>summary{margin-bottom:6px}
   .resumen{border-top:1px solid var(--borde);padding-top:6px}
   .res-fila{display:flex;align-items:center;gap:8px;padding:4px 0}
   .res-fila.oculta .res-nombre,.res-fila.oculta .muestra{opacity:.4}
@@ -612,7 +618,9 @@
   <div class="tr-avance">
     <div class="tr-avance-txt"><span>Inspección de AP <em id="tr-mini-sed"></em></span><b id="tr-cuenta">0 / 0</b>
       <button id="tr-desplegar" class="tr-btn tr-mini" aria-label="Desplegar la ficha de la SED" title="Desplegar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button id="tr-salir-mini" class="tr-btn tr-mini" aria-label="Salir de la SED de trabajo" title="Salir (mostrar todo)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="tr-barra"><i id="tr-barra"></i></div>
     <button id="tr-registros" class="tr-reg">Registros y exportar a Excel</button>
   </div>
@@ -1419,7 +1427,8 @@
     CAPAS.forEach(c => { const e = estado[c.id];
       $(`${c.id}-cuenta`).textContent = e ? `${e.gj.features.length.toLocaleString('es-PE')} ${c.unidad || 'elementos'}` : 'sin cargar'; });
     if (!cargadas.length) { box.innerHTML = '<p class="ayuda">Aún no hay capas cargadas.</p>'; return; }
-    box.innerHTML = `<h3 class="subt">Capas cargadas</h3>` + cargadas.map(c => {
+    const abierto = !!(box.querySelector('details.res-det') && box.querySelector('details.res-det').open);
+    box.innerHTML = `<details class="res-det"${abierto ? ' open' : ''}><summary class="subt">Capas cargadas (${cargadas.length}) · mostrar, ocultar o borrar</summary>` + cargadas.map(c => {
       const visible = $(`${c.id}-ver`).checked;
       return `<div class="res-fila${visible ? '' : ' oculta'}">
         <button class="res-ojo" data-id="${c.id}" aria-label="${visible ? 'Ocultar' : 'Mostrar'} ${esc(c.nombre)}" title="${visible ? 'Ocultar' : 'Mostrar'}">
@@ -1435,7 +1444,7 @@
         <button class="b-sec" id="res-mostrar">Mostrar todas</button>
         <button class="b-sec" id="res-ocultar">Ocultar todas</button>
       </div>
-      <button class="b-sec res-todo" id="res-borrar-todo">Borrar todas las capas</button>`;
+      <button class="b-sec res-todo" id="res-borrar-todo">Borrar todas las capas</button></details>`;
     const verCapa = (id, v) => { const ck = $(`${id}-ver`); if (ck.checked !== v) { ck.checked = v; ck.dispatchEvent(new Event('change')); } };
     box.querySelectorAll('.res-ojo').forEach(b => b.onclick = () => { verCapa(b.dataset.id, !$(`${b.dataset.id}-ver`).checked); actualizarResumen(); });
     box.querySelectorAll('.res-borrar').forEach(b => b.onclick = () => {
@@ -1927,6 +1936,10 @@
     redibujarTrabajo(); pintarBarraTrabajo(); encuadrarTrabajo();
     const n = contarTrabajo();
     if (n.every(x => x === null)) avisar('Carga la red BT, los postes BT o los AP para ver lo que pertenece a esta SED.', true);
+    else if (n.every(x => !x)) {
+      trabajo.verOtras = true; redibujarTrabajo(); pintarBarraTrabajo();
+      avisar(`La SED ${$('tr-etq').textContent} no tiene red BT, postes BT ni AP en las capas cargadas. Se siguen mostrando las demás.`, true);
+    }
     else avisar(`SED de trabajo: ${$('tr-etq').textContent}`);
   }
   function salirTrabajo() {
@@ -1935,6 +1948,7 @@
     redibujarTrabajo(); avisar('Se muestran nuevamente todas las SED');
   }
   $('tr-salir').onclick = salirTrabajo;
+  $('tr-salir-mini').onclick = salirTrabajo;
   function plegarTrabajo(si) {
     $('trabajo').classList.toggle('plegada', si); document.body.classList.toggle('trabajo-plegada', si);
     try { localStorage.setItem('trabajoPlegado', si ? '1' : '0'); } catch {}
