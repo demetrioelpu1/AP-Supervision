@@ -82,6 +82,8 @@
     font:700 12px "Barlow Semi Condensed",sans-serif;color:#ff0000;
     text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
   body.ver-etq .etq-sed{display:block}
+  .etq-sed i{display:block;font-style:normal;text-align:center;background:#000;color:#fff;text-shadow:none;
+    padding:1px 5px;border-radius:3px;margin-top:2px;line-height:1.25}
   .etq-punto{position:absolute;left:0;top:6px;transform:translateX(-50%);white-space:nowrap;
     font:600 11px "Barlow Semi Condensed",sans-serif;
     text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
@@ -855,6 +857,8 @@
       ],
       icono: (color) => simboloSED(color),
       etiquetaMapa: p => p.SED_ETQ_SE || p.SED_ETQ_SED || '',
+      // debajo del símbolo: SED_ETQ_SED y, abajo, SED_ETQ_SIELSE (fondo negro, letra blanca)
+      etiquetaLineas: p => [p.SED_ETQ_SED || p.SED_ETQ_SE, p.SED_ETQ_SIELSE || p.SED_ETQ_SI],
       titulo: p => 'SED ' + (p.SED_ETQ_SE || p.SED_ETQ_SED || '') + (p.SED_NOM_SE || p.SED_NOM_SED ? ' · ' + (p.SED_NOM_SE || p.SED_NOM_SED) : ''),
       etiquetas: {                              // alias de campo del archivo .lyr
         SED_ETQ_SE: 'Etiqueta de campo', SED_COD__1: 'Código SED', SED_NOM_SE: 'Nombre SED', SED_DIR_SE: 'Dirección SED',
@@ -1001,7 +1005,7 @@
       { nombre: 'Potencia de lámpara', campo: /^EQP_AP_LAMP_POT$/i }
     ],
     anguloDe: p => +campo(p, 'EQP_AP_PAST_ANG', 'EQP_AP_PAS') || 0,
-    etiquetaMapa: p => campo(p, 'EQP_AP_COD_EQP_AP'), colorEtiqueta: '#000000',
+    // sin etiqueta en el mapa (el código se ve al tocar el pastoral)
     titulo: p => 'Equipo AP ' + campo(p, 'EQP_AP_COD_EQP_AP'),
     etiquetas: { EQP_AP_COD_EQP_AP: 'Código equipo AP', EQP_AP_COD_SED: 'Código SED', EQP_AP_ETQ_SED: 'Etiqueta SED',
       EQP_AP_COD_NOD: 'Código estructura BT', EQP_AP_COD_TBT: 'Código tramo BT', EQP_AP_COD_SAL: 'Código salida BT',
@@ -1042,19 +1046,33 @@
       e.capa.eachLayer(l => {
         if (n > 1500 || !l.feature || !vista.contains(l.getLatLng())) return;
         const p = map.latLngToLayerPoint(l.getLatLng()), a = (c.anguloDe(l.feature.properties || {}) || 0) * Math.PI / 180;
-        const fin = L.point(p.x + 13 * Math.sin(a), p.y - 13 * Math.cos(a));     // 10 pt en la dirección del pastoral
-        const color = colorDe(c, l.feature);
-        L.polyline([l.getLatLng(), map.layerPointToLatLng(fin)], { renderer: lienzo, color: '#333', weight: 1.5, interactive: false }).addTo(capaPastorales);
-        L.circleMarker(map.layerPointToLatLng(fin), { renderer: lienzo, radius: 5, fillColor: color, fillOpacity: 1, color: '#000', weight: 1, interactive: false }).addTo(capaPastorales);
+        const fin = L.point(p.x + 19.5 * Math.sin(a), p.y - 19.5 * Math.cos(a));   // pastoral 1,5 veces más largo
+        const colorX = colorAP(c, l.feature), r = 5;                                // X roja = luminaria
+        L.polyline([l.getLatLng(), map.layerPointToLatLng(fin)], { renderer: lienzo, color: '#222', weight: 2, interactive: false }).addTo(capaPastorales);
+        [[-1, -1, 1, 1], [-1, 1, 1, -1]].forEach(([a1, b1, a2, b2]) => {
+          const ll1 = map.layerPointToLatLng(L.point(fin.x + a1 * r, fin.y + b1 * r)), ll2 = map.layerPointToLatLng(L.point(fin.x + a2 * r, fin.y + b2 * r));
+          L.polyline([ll1, ll2], { renderer: lienzo, color: '#fff', weight: 5, interactive: false, lineCap: 'round' }).addTo(capaPastorales); // halo blanco
+          L.polyline([ll1, ll2], { renderer: lienzo, color: colorX, weight: 3, interactive: false, lineCap: 'round' }).addTo(capaPastorales);
+        });
         n++;
       });
     });
   }
   map.on('zoomend moveend', dibujarPastorales);
+  // color de la X: rojo con el símbolo único; si se colorea por otro campo, el color de su clase
+  function colorAP(c, ft) {
+    const e = estado[c.id];
+    return (!e || !e.modo || e.modo.unico || !$(`${c.id}-porcolor`).checked) ? '#ff0000' : colorDe(c, ft);
+  }
 
   // ---- puntos dibujados como círculos (postes, etc.): tamaño según el zoom ----
   const factorZoomPunto = () => { const z = map.getZoom(); return z <= 13 ? 0.45 : z === 14 ? 0.6 : z === 15 ? 0.8 : z <= 17 ? 1 : 1.25; };
   function estiloPunto(c, ft) {
+    if (c.pastoral) {
+      const cerca = map.getZoom() >= 16;
+      return { renderer: lienzo, radius: cerca ? 7 : 3.2, fillColor: colorAP(c, ft), fillOpacity: cerca ? 0 : 1,
+               color: '#600', weight: cerca ? 0 : 0.8, opacity: cerca ? 0 : 1 };
+    }
     const e = estado[c.id], m = (e && e.modo) || {}, v = e && e.campoColor ? valorDe(e, ft) : '';
     const activo = $(`${c.id}-porcolor`) ? $(`${c.id}-porcolor`).checked : true;
     const diam = (activo && m.tamano && m.tamano[v]) || c.tamano || 8;
@@ -1063,7 +1081,8 @@
   }
   map.on('zoomend', () => CAPAS.forEach(c => {
     const e = estado[c.id];
-    if (c.estilo === 'circulo' && e && e.capa) e.capa.eachLayer(l => l.feature && l.setRadius(estiloPunto(c, l.feature).radius));
+    if (c.pastoral && e && e.capa) e.capa.setStyle(ft => estiloPunto(c, ft));
+    else if (c.estilo === 'circulo' && e && e.capa) e.capa.eachLayer(l => l.feature && l.setRadius(estiloPunto(c, l.feature).radius));
   }));
 
   // ---- etiquetas de puntos (código) solo de cerca y solo en la zona visible ----
@@ -1394,7 +1413,9 @@
       pointToLayer: (ft, ll) => c.icono
         ? L.marker(ll, { icon: L.divIcon({ className: 'ico-capa', iconSize: [24, 26], iconAnchor: [12, 15],
             html: `<div class="sed-ico">${c.icono(colorDe(c, ft))}</div>` +
-                  (c.etiquetaMapa ? `<span class="etq-sed">${esc(c.etiquetaMapa(ft.properties || {}))}</span>` : '') }) })
+                  (c.etiquetaLineas
+                    ? `<span class="etq-sed">${c.etiquetaLineas(ft.properties || {}).filter(v => v != null && v !== '').map(v => `<i>${esc(v)}</i>`).join('')}</span>`
+                    : c.etiquetaMapa ? `<span class="etq-sed">${esc(c.etiquetaMapa(ft.properties || {}))}</span>` : '') }) })
         : L.circleMarker(ll, c.estilo === 'circulo' ? estiloPunto(c, ft)
             : { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
       onEachFeature: (ft, lyr) => lyr.on('click', ev => {
