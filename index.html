@@ -1783,7 +1783,19 @@
       const texto = await archivo.text();
       const { gj, avisos } = normalizar(JSON.parse(texto));
       if (c.derivar) gj.features.forEach(f => c.derivar(f.properties || (f.properties = {})));
-      if (!desdeMemoria) BD.guardar(c.id, { nombre: archivo.name, texto }).catch(() => {});
+      // se guarda en el celular una versión compacta (sin campos técnicos ni vacíos y en lat/long),
+      // mucho más liviana, para que las capas grandes se recuperen bien al volver a abrir la app
+      if (!desdeMemoria) {
+        const compacto = { type: 'FeatureCollection', features: gj.features.map(f => {
+          const pr = {};
+          for (const k in (f.properties || {})) { const v = f.properties[k];
+            if (v === null || v === '' || k.startsWith('_') || (c.ocultar && c.ocultar.test(k) && !/COD_SED|ETQ_SED/i.test(k))) continue; pr[k] = v; }
+          return { type: 'Feature', properties: pr, geometry: f.geometry && { type: f.geometry.type,
+            coordinates: convertirCoords(f.geometry.coordinates, xy => [+xy[0].toFixed(7), +xy[1].toFixed(7)]) } };
+        }) };
+        BD.guardar(c.id, { nombre: archivo.name, texto: JSON.stringify(compacto), compacto: true })
+          .catch(() => avisar(`No se pudo guardar "${c.nombre}" en la memoria del celular. Funciona ahora, pero al cerrar la app tendrás que volver a cargarla.`, true));
+      }
       estado[c.id] = { gj, capa: null, filtro: null, archivo: archivo.name };
       const campos = [...new Set(gj.features.flatMap(f => Object.keys(f.properties || {})))];
       $(`${c.id}-campo`).innerHTML = campos.map(k => `<option>${esc(k)}</option>`).join('');
@@ -2461,14 +2473,19 @@
   }
 
   // ---- al abrir la herramienta, vuelve a cargar las capas guardadas en el dispositivo ----
+  // pide al navegador que no borre los datos guardados aunque falte espacio
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   (async () => {
+    const fallidas = [];
     for (const c of CAPAS) {
-      try {
-        const d = await BD.leer(c.id);
-        if (d && d.texto) await cargarArchivo(c, { name: d.nombre, text: async () => d.texto }, true);
-      } catch {}
+      let d = null;
+      try { d = await BD.leer(c.id); } catch {}
+      if (!d || !d.texto) continue;
+      try { await cargarArchivo(c, { name: d.nombre, text: async () => d.texto }, true); } catch {}
+      if (!estado[c.id]) fallidas.push(c.nombre);
     }
-    if (Object.keys(estado).length) { verPuno(); avisar('Capas recuperadas de la sesión anterior'); }
+    if (fallidas.length) avisar(`No se pudo recuperar: ${fallidas.join(', ')}. Vuelve a compartirlas desde WhatsApp.`, true);
+    else if (Object.keys(estado).length) { verPuno(); avisar('Capas recuperadas de la sesión anterior'); }
     await recibirCompartidos();
   })();
 
