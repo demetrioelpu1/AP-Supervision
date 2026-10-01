@@ -1,8 +1,10 @@
 // Service worker de la herramienta AP: instalación como app, copia sin señal y recepción de archivos compartidos
-const CACHE = 'ap-v12';
+const CACHE = 'ap-v14';
 const BASE = ['./', './index.html', './manifest.webmanifest', './icono_AP_192.png', './icono_AP_512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'];
+  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(
   k.filter(x => x !== CACHE && x !== 'ap-compartidos').map(x => caches.delete(x))))); self.clients.claim(); });

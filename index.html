@@ -107,7 +107,85 @@
   .tr-chip small{font-weight:400;opacity:.85}
   .tr-otras{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:.8rem;color:var(--muted);cursor:pointer}
   @media (max-width:600px){ .trabajo{left:8px;right:auto;width:calc(100% - 70px);top:calc(64px + env(safe-area-inset-top,0px))}
-    body.con-trabajo .columna{top:calc(64px + 150px + env(safe-area-inset-top,0px))} }
+    body.con-trabajo .columna{top:calc(64px + 245px + env(safe-area-inset-top,0px))} }
+  /* mapas sin internet */
+  .rc-lista{list-style:none;margin:0;padding:0}
+  .rc-lista li{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--borde)}
+  .rc-lista li.activo .rc-nom b{color:#7fd3ff}
+  .rc-nom{flex:1;min-width:0;line-height:1.15}
+  .rc-nom b{display:block;font:600 .9rem "Barlow Semi Condensed",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rc-nom small{font-size:.72rem;color:var(--muted)}
+  .rc-lista button{flex:none;font:600 .8rem "Barlow Semi Condensed",sans-serif;border-radius:6px;padding:6px 8px;cursor:pointer;
+    background:transparent;color:var(--ink);border:1px solid var(--borde)}
+  .rc-lista button.rc-abrir[aria-pressed="true"]{background:#0a6cff;border-color:#0a6cff;color:#fff}
+  .rc-lista button.rc-borrar{color:#ff8f8f;border-color:#7a3a3a}
+  /* tipos de AP agregados por el usuario */
+  .f-opc button.tipo-propio{position:relative;padding-right:26px}
+  .f-opc button .quitar-tipo{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:.7}
+  .f-opc button.agregar-tipo{flex:0 0 auto;border-style:dashed;color:#8fc1ff}
+  /* avance de la inspección en la barra de trabajo */
+  .tr-avance{margin-top:8px;border-top:1px solid var(--borde);padding-top:7px}
+  .tr-avance-txt{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--muted)}
+  .tr-avance-txt b{font:700 1rem "Barlow Semi Condensed",sans-serif;color:#fff}
+  .tr-barra{height:7px;background:#33443f;border-radius:4px;overflow:hidden;margin-top:4px}
+  .tr-barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0a6cff,#00e5ff);transition:width .3s}
+  .tr-reg{width:100%;margin-top:7px;font:600 .85rem "Barlow Semi Condensed",sans-serif;color:#fff;background:#24485f;
+    border:1px solid #2f6a85;border-radius:6px;padding:6px;cursor:pointer}
+
+  /* hoja (formulario y registros): sube desde abajo en el celular, ventana centrada en la PC */
+  .fondo-hoja{position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.45)}
+  .fondo-hoja[hidden],.hoja[hidden]{display:none}
+  .hoja{position:fixed;z-index:1501;left:50%;bottom:0;transform:translateX(-50%);width:min(460px,100%);max-height:92vh;
+    display:flex;flex-direction:column;background:var(--panel);color:var(--ink);border-radius:14px 14px 0 0;
+    box-shadow:0 -6px 28px rgba(0,0,0,.5);padding-bottom:env(safe-area-inset-bottom,0px)}
+  @media (min-width:601px){.hoja{bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:14px;max-height:88vh}}
+  .hoja-cab{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px 14px 0 0;
+    background:linear-gradient(100deg,#0a4fb8,#0a6cff)}
+  .hoja-sed{flex:1;min-width:0;line-height:1.15}
+  .hoja-sed small{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#cfe2ff}
+  .hoja-sed b{font:700 1.15rem "Barlow Semi Condensed",sans-serif;color:#fff}
+  .hoja-sed span{display:block;font-size:.78rem;color:#dbe8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hoja-cont{text-align:center;background:rgba(0,0,0,.25);border-radius:8px;padding:4px 10px;line-height:1.1}
+  .hoja-cont b{display:block;font:700 1.2rem "Barlow Semi Condensed",sans-serif;color:#fff}
+  .hoja-cont small{font-size:.68rem;color:#cfe2ff}
+  .hoja-ap{padding:8px 14px;font:600 .9rem "Barlow Semi Condensed",sans-serif;background:#24353a;border-bottom:1px solid var(--borde)}
+  .hoja-cuerpo{overflow-y:auto;padding:10px 14px}
+  .f-grupo{margin-bottom:12px}
+  .f-tit{display:block;font:600 .9rem "Barlow Semi Condensed",sans-serif;color:var(--contour);margin-bottom:6px}
+  .f-opc{display:flex;gap:8px;flex-wrap:wrap}
+  .f-opc button{flex:1;min-width:0;font:600 1rem "Barlow Semi Condensed",sans-serif;color:var(--ink);background:var(--panel-2);
+    border:1.5px solid var(--borde);border-radius:8px;padding:11px 8px;cursor:pointer}
+  .f-opc button[aria-pressed="true"]{background:#0a6cff;border-color:#0a6cff;color:#fff}
+  .f-opc-chica button{flex:0 0 auto;padding:7px 11px;font-size:.92rem}
+  .f-input{width:100%;margin-top:6px;font:500 1rem "Barlow",sans-serif;color:var(--ink);background:var(--panel-2);
+    border:1.5px solid var(--borde);border-radius:8px;padding:9px 10px;resize:vertical}
+  .f-input:focus{outline:2px solid #0a6cff;outline-offset:0}
+  .f-ref{font-size:.76rem;color:var(--muted);margin:5px 0 0}
+  .f-fotos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .f-foto{position:relative;aspect-ratio:4/3;border:1.5px dashed #4b6a63;border-radius:10px;overflow:hidden;cursor:pointer;
+    display:grid;place-items:center;background:var(--panel-2)}
+  .f-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .f-foto.lista{border-style:solid;border-color:#2ecc71}
+  .f-foto-vacio{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:1.6rem;text-align:center}
+  .f-foto-vacio b{font:600 .9rem "Barlow Semi Condensed",sans-serif}
+  .f-foto-vacio small{font-size:.7rem;color:var(--muted)}
+  .hoja-pie{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--borde)}
+  .hoja-pie-col{flex-direction:column}
+  .f-btn{flex:1;font:700 1rem "Barlow Semi Condensed",sans-serif;border-radius:8px;padding:11px;cursor:pointer;
+    background:transparent;color:var(--ink);border:1.5px solid var(--borde)}
+  .f-btn-ok{background:#0a6cff;border-color:#0a6cff;color:#fff}
+  .f-btn-rojo{flex:0 0 auto;color:#ff8f8f;border-color:#7a3a3a}
+  .r-alcance{display:flex;gap:16px;padding:8px 14px;font-size:.88rem;border-bottom:1px solid var(--borde)}
+  .r-alcance label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .r-lista{list-style:none;margin:0;padding:0 14px;overflow-y:auto;flex:1;min-height:80px}
+  .r-lista li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde);cursor:pointer}
+  .r-lista li .num{flex:none;width:26px;height:26px;border-radius:50%;background:#0a6cff;color:#fff;display:grid;place-items:center;font:700 .8rem sans-serif}
+  .r-lista li .txt{flex:1;min-width:0;line-height:1.2}
+  .r-lista li b{font:600 .92rem "Barlow Semi Condensed",sans-serif}
+  .r-lista li small{display:block;font-size:.76rem;color:var(--muted)}
+  .r-lista li .fot{font-size:.75rem;color:var(--muted);flex:none}
+  .r-vacio{color:var(--muted);font-size:.88rem;padding:14px 0;cursor:default !important;border:0 !important}
+
   /* resumen de capas cargadas */
   .resumen{border-top:1px solid var(--borde);padding-top:6px}
   .res-fila{display:flex;align-items:center;gap:8px;padding:4px 0}
@@ -377,6 +455,13 @@
     </svg>
   </button>
   <hr>
+  <button id="b-offline" class="ico" aria-pressed="false" aria-label="Mapas sin internet" data-tip="Mapas sin internet" aria-controls="offline">
+    <!-- mapa con tijera de recorte -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6l5-2 6 2 6-2v8"/><path d="M3 6v14l5-2 4 1.3"/><path d="M8 4v14"/>
+      <circle cx="15" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><path d="M16.4 16.6L21 12M18.6 16.6L14 12"/>
+    </svg>
+  </button>
   <button id="b-capas" class="ico" aria-pressed="false" aria-label="Capas eléctricas" data-tip="Capas eléctricas" aria-controls="capas">
     <!-- capas apiladas con rayo -->
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -423,6 +508,17 @@
     </div>
     <p class="ayuda">Válido para UTM <b>WGS84</b>. Si tus datos están en PSAD56, proyéctalos antes en ArcMap.</p>
   </details>
+</section>
+
+<section id="offline" class="datos" aria-label="Mapas sin internet" hidden>
+  <h2 class="tit-datos">Mapas sin internet</h2>
+  <p class="ayuda">Con internet, encuadra la zona donde trabajarás y guarda un <b>recorte</b>. Luego podrás abrirlo en campo aunque no haya señal.</p>
+  <div class="campo"><label for="rc-nombre">Nombre</label><input id="rc-nombre" class="f-input" style="margin:0" placeholder="Ej.: SE05330 Tambopata"></div>
+  <label class="chk" style="margin:4px 0 8px"><input type="checkbox" id="rc-detalle" checked> Con más detalle al acercar (tarda un poco más)</label>
+  <button id="rc-recortar" class="b-marcar" style="width:100%;font:600 .95rem 'Barlow Semi Condensed',sans-serif;border-radius:6px;padding:9px;cursor:pointer">✂ Recortar esta vista</button>
+  <p class="ayuda" id="rc-estado" style="margin-top:6px"></p>
+  <h3 class="subt" style="margin-top:8px">Recortes guardados</h3>
+  <ul id="rc-lista" class="rc-lista"></ul>
 </section>
 
 <section id="codigo" class="datos" aria-label="Buscar código" hidden>
@@ -493,6 +589,82 @@
   </div>
   <div class="tr-chips" id="tr-chips"></div>
   <label class="tr-otras"><input type="checkbox" id="tr-otras"> Ver también las demás SED</label>
+  <div class="tr-avance">
+    <div class="tr-avance-txt"><span>Inspección de AP</span><b id="tr-cuenta">0 / 0</b></div>
+    <div class="tr-barra"><i id="tr-barra"></i></div>
+    <button id="tr-registros" class="tr-reg">Registros y exportar a Excel</button>
+  </div>
+</section>
+
+<!-- ===== Formulario de inspección de AP ===== -->
+<div id="fondo-hoja" class="fondo-hoja" hidden></div>
+<section id="form-ap" class="hoja" aria-label="Inspección de AP" hidden>
+  <div class="hoja-cab">
+    <div class="hoja-sed"><small>SED</small><b id="f-sed">—</b><span id="f-sed-nom"></span></div>
+    <div class="hoja-cont"><b id="f-cont">0 / 0</b><small>inspeccionados</small></div>
+  </div>
+  <div class="hoja-ap" id="f-ap">—</div>
+  <div class="hoja-cuerpo">
+    <div class="f-grupo">
+      <label class="f-tit">Tipo de AP</label>
+      <div class="f-opc" id="f-tipo"></div>
+    </div>
+    <div class="f-grupo">
+      <label class="f-tit" for="f-pot">Potencia de AP (W)</label>
+      <div class="f-opc f-opc-chica" id="f-pot-opc"></div>
+      <input id="f-pot" class="f-input" inputmode="numeric" placeholder="Otra potencia en W">
+      <p class="f-ref" id="f-ref"></p>
+    </div>
+    <div class="f-grupo">
+      <label class="f-tit">¿Operativo?</label>
+      <div class="f-opc" id="f-oper">
+        <button data-v="Sí">Sí</button>
+        <button data-v="No">No</button>
+      </div>
+    </div>
+    <div class="f-grupo">
+      <label class="f-tit">Fotos</label>
+      <div class="f-fotos">
+        <label class="f-foto" id="f-foto-pan">
+          <input type="file" accept="image/*" capture="environment" hidden>
+          <span class="f-foto-vacio">📷<b>Panorámica</b><small>Tocar para tomar</small></span>
+          <img alt="Foto panorámica" hidden>
+        </label>
+        <label class="f-foto" id="f-foto-det">
+          <input type="file" accept="image/*" capture="environment" hidden>
+          <span class="f-foto-vacio">📷<b>Detalle</b><small>Tocar para tomar</small></span>
+          <img alt="Foto de detalle" hidden>
+        </label>
+      </div>
+    </div>
+    <div class="f-grupo">
+      <label class="f-tit" for="f-obs">Observaciones (opcional)</label>
+      <textarea id="f-obs" class="f-input" rows="2" placeholder="Ej.: pastoral inclinado, luminaria sin tapa…"></textarea>
+    </div>
+  </div>
+  <div class="hoja-pie">
+    <button id="f-eliminar" class="f-btn f-btn-rojo" hidden>Eliminar</button>
+    <button id="f-cancelar" class="f-btn">Cancelar</button>
+    <button id="f-guardar" class="f-btn f-btn-ok">Guardar</button>
+  </div>
+</section>
+
+<!-- ===== Lista de registros y exportación ===== -->
+<section id="registros" class="hoja" aria-label="Registros de inspección" hidden>
+  <div class="hoja-cab">
+    <div class="hoja-sed"><small>Registros de inspección</small><b id="r-tit">—</b></div>
+    <button id="r-cerrar" class="tr-btn" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="r-alcance">
+    <label><input type="radio" name="r-alc" value="sed" checked> Solo esta SED</label>
+    <label><input type="radio" name="r-alc" value="todo"> Todas las SED</label>
+  </div>
+  <ul id="r-lista" class="r-lista"></ul>
+  <div class="hoja-pie hoja-pie-col">
+    <button id="r-exp-zip" class="f-btn f-btn-ok">Descargar Excel + fotos (ZIP)</button>
+    <button id="r-exp-xlsx" class="f-btn">Descargar solo Excel</button>
+    <button id="r-compartir" class="f-btn">Compartir por WhatsApp…</button>
+  </div>
 </section>
 
 <aside id="cursor" class="cursor" aria-label="Coordenadas del puntero">
@@ -520,7 +692,7 @@
   // en el celular, cierra el panel abierto para dejar ver el mapa
   function cerrarPanelesMovil() {
     if (!esMovil()) return;
-    ['codigo', 'buscar', 'ir', 'capas'].forEach(id => { const el = $(id); if (el && !el.hidden) abrirPanel(id); });
+    ['offline', 'codigo', 'buscar', 'ir', 'capas'].forEach(id => { const el = $(id); if (el && !el.hidden) abrirPanel(id); });
   }
 
   // ---------- Mapas base ----------
@@ -777,7 +949,7 @@
   // Motor principal: Photon (komoot). Respaldo: Nominatim (OSM).
   const panelBus = $('buscar'), bBus = $('b-buscar');
   function abrirPanel(cual) { // solo un panel grande abierto a la vez
-    const paneles = { codigo: ['codigo', 'b-codigo'], buscar: ['buscar', 'b-buscar'], ir: ['ir', 'b-ir'], capas: ['capas', 'b-capas'] };
+    const paneles = { offline: ['offline', 'b-offline'], codigo: ['codigo', 'b-codigo'], buscar: ['buscar', 'b-buscar'], ir: ['ir', 'b-ir'], capas: ['capas', 'b-capas'] };
     const abrir = $(paneles[cual][0]).hidden;
     Object.entries(paneles).forEach(([k, [pid, bid]]) => {
       const on = k === cual && abrir;
@@ -1472,6 +1644,8 @@
             : { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
       onEachFeature: (ft, lyr) => lyr.on('click', ev => {
         if (c.id === 'sed') seleccionarSED(ft);
+        if (trabajo && c.id === 'ap' && perteneceSED(c, ft)) { abrirFormularioAP(ft); return; }
+        if (trabajo && c.id === 'postes_bt') { const apP = apEnPoste(ft, ev.latlng); if (apP) { abrirFormularioAP(apP); return; } }
         L.popup({ maxWidth: 320 }).setLatLng(ev.latlng).setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
       })
     });
@@ -1648,6 +1822,20 @@
   const capaSedTrabajo = L.layerGroup().addTo(map);
   const CAPAS_SED = [['bt', 'Red BT'], ['postes_bt', 'Postes BT'], ['ap', 'AP']];
 
+  // AP de la SED de trabajo instalado en ese poste (por código de poste o, si no, el más cercano a menos de 6 m)
+  function apEnPoste(ftPoste, ll) {
+    const cAP = CAPAS.find(k => k.id === 'ap'), e = estado.ap; if (!e) return null;
+    const cod = normTxt(campo(ftPoste.properties || {}, 'NOD_COD_NOD', 'NOD_COD_NO'));
+    let mejor = null, dmin = 6;
+    e.gj.features.forEach(f => {
+      if (!perteneceSED(cAP, f)) return;
+      if (cod && normTxt(campo(f.properties || {}, 'EQP_AP_COD_NOD')) === cod) { mejor = f; dmin = -1; return; }
+      if (dmin < 0) return;
+      const d = map.distance(ll, [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+      if (d < dmin) { dmin = d; mejor = f; }
+    });
+    return mejor;
+  }
   function contarTrabajo() {
     return CAPAS_SED.map(([id]) => { const c = CAPAS.find(k => k.id === id), e = estado[id];
       return e ? e.gj.features.filter(ft => perteneceSED(c, ft)).length : null; });
@@ -1665,6 +1853,7 @@
       const ck = $(`${b.dataset.id}-ver`); ck.checked = !ck.checked; ck.dispatchEvent(new Event('change')); pintarBarraTrabajo();
     });
     $('tr-otras').checked = !!trabajo.verOtras;
+    pintarAvance();
   }
   function redibujarTrabajo() {
     CAPAS_SED.forEach(([id]) => { const c = CAPAS.find(k => k.id === id); if (estado[id]) dibujar(c); });
@@ -1698,6 +1887,414 @@
   $('tr-salir').onclick = salirTrabajo;
   $('tr-zoom').onclick = encuadrarTrabajo;
   $('tr-otras').onchange = ev => { trabajo.verOtras = ev.target.checked; redibujarTrabajo(); pintarBarraTrabajo(); };
+
+  // =================== INSPECCIÓN DE AP EN CAMPO ===================
+  // Al tocar un AP azul (de la SED de trabajo) se marca con un círculo con X negra y se abre el formulario.
+  // Los registros y las fotos se guardan en el celular (IndexedDB) y se exportan a Excel (+ fotos en ZIP).
+  const URL_XLSX = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  const URL_JSZIP = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+  // se descargan una vez con internet para que la exportación funcione después sin señal
+  [URL_XLSX, URL_JSZIP].forEach(u => fetch(u, { mode: 'cors' }).catch(() => {}));
+  const cargarScript = url => new Promise((ok, mal) => {
+    if (document.querySelector(`script[src="${url}"]`)) return ok();
+    const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = () => mal(new Error('sin conexión'));
+    document.head.appendChild(s);
+  });
+
+  // ---- base de datos local (2 almacenes: registros y fotos) ----
+  const BDI = {
+    abrir() { return new Promise((ok, mal) => { const r = indexedDB.open('herramientaAP_inspeccion', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('registros'); r.result.createObjectStore('fotos'); };
+      r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); },
+    async op(almacen, modo, fn) { const db = await this.abrir(); return new Promise((ok, mal) => {
+      const t = db.transaction(almacen, modo), st = t.objectStore(almacen); const r = fn(st);
+      t.oncomplete = () => ok(r && r.result); t.onerror = () => mal(t.error); }); },
+    poner(a, k, v) { return this.op(a, 'readwrite', st => st.put(v, k)); },
+    leer(a, k) { return this.op(a, 'readonly', st => st.get(k)); },
+    borrar(a, k) { return this.op(a, 'readwrite', st => st.delete(k)); },
+    async todos(a) { const db = await this.abrir(); return new Promise((ok, mal) => {
+      const res = [], r = db.transaction(a).objectStore(a).openCursor();
+      r.onsuccess = () => { const cur = r.result; if (cur) { res.push(cur.value); cur.continue(); } else ok(res); };
+      r.onerror = () => mal(r.error); }); }
+  };
+  const registros = new Map();     // id AP → registro
+  BDI.todos('registros').then(lista => { lista.forEach(r => registros.set(r.id, r)); dibujarInspeccionados(); if (trabajo) pintarAvance(); }).catch(() => {});
+
+  const idAP = p => String(campo(p, 'EQP_AP_COD_EQP_AP') || '');
+  const capaInspeccion = L.layerGroup().addTo(map);
+  const iconoInspeccion = L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
+    html: `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,.9)" stroke="#000" stroke-width="2.2"/>
+           <path d="M6.6 6.6L17.4 17.4M17.4 6.6L6.6 17.4" stroke="#000" stroke-width="2.4" stroke-linecap="round"/></svg>` });
+  function dibujarInspeccionados() {
+    capaInspeccion.clearLayers();
+    registros.forEach(r => {
+      L.marker([r.lat, r.lon], { icon: iconoInspeccion, zIndexOffset: 1500, title: 'AP inspeccionado ' + r.id })
+        .on('click', () => { const ft = buscarFeatureAP(r.id); abrirFormularioAP(ft, r); }).addTo(capaInspeccion);
+    });
+  }
+  function buscarFeatureAP(id) {
+    const e = estado.ap; if (!e) return null;
+    return e.gj.features.find(f => idAP(f.properties || {}) === id) || null;
+  }
+  // AP que pertenecen a la SED de trabajo
+  function apsDeTrabajo() {
+    const c = CAPAS.find(k => k.id === 'ap'), e = estado.ap;
+    return (e && trabajo) ? e.gj.features.filter(ft => perteneceSED(c, ft)) : [];
+  }
+  function avance() {
+    const lista = apsDeTrabajo(); let hechos = 0;
+    lista.forEach(ft => { if (registros.has(idAP(ft.properties || {}))) hechos++; });
+    return { hechos, total: lista.length };
+  }
+  function pintarAvance() {
+    if (!trabajo) return;
+    const { hechos, total } = avance();
+    $('tr-cuenta').textContent = `${hechos} / ${total}`;
+    $('tr-barra').style.width = total ? (100 * hechos / total) + '%' : '0';
+  }
+
+  // ---- formulario ----
+  const POT = { 'Vapor de sodio': [50, 70, 100, 150, 250, 400], 'LED': [18, 30, 40, 60, 80, 100, 120, 150] };
+  let fActual = null;   // { ft, id, previo, fotos: {pan, det}, marcaTemp }
+  const marcaTemporal = L.layerGroup().addTo(map);
+
+  function elegirOpcion(grupoId, valor) {
+    $(grupoId).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(valor)));
+  }
+  const opcionElegida = grupoId => { const b = $(grupoId).querySelector('button[aria-pressed="true"]'); return b ? b.dataset.v : ''; };
+  function pintarPotencias(tipo, valor) {
+    const lista = POT[tipo] || [...POT['Vapor de sodio'], ...POT['LED']].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+    $('f-pot-opc').innerHTML = lista.map(v => `<button data-v="${v}">${v} W</button>`).join('');
+    $('f-pot-opc').querySelectorAll('button').forEach(b => b.onclick = () => { $('f-pot').value = b.dataset.v; elegirOpcion('f-pot-opc', b.dataset.v); });
+    if (valor) elegirOpcion('f-pot-opc', valor);
+  }
+  // ---- tipos de AP: base + los que agregue el usuario (se recuerdan en el celular) ----
+  const TIPOS_BASE = ['Vapor de sodio', 'LED'];
+  const tiposPropios = () => { try { return JSON.parse(localStorage.getItem('tiposAP') || '[]'); } catch { return []; } };
+  const guardarTipos = l => { try { localStorage.setItem('tiposAP', JSON.stringify(l)); } catch {} };
+  function pintarTipos(sel) {
+    const propios = tiposPropios();
+    if (sel && !TIPOS_BASE.includes(sel) && !propios.includes(sel)) propios.push(sel);   // tipo de un registro antiguo
+    $('f-tipo').innerHTML =
+      TIPOS_BASE.map(t => `<button data-v="${esc(t)}">${esc(t)}</button>`).join('') +
+      propios.map(t => `<button class="tipo-propio" data-v="${esc(t)}">${esc(t)}<span class="quitar-tipo" data-q="${esc(t)}" title="Quitar este tipo de la lista">✕</span></button>`).join('') +
+      `<button class="agregar-tipo" data-nuevo="1">+ Otro tipo</button>`;
+    elegirOpcion('f-tipo', sel || '');
+  }
+  $('f-tipo').addEventListener('click', ev => {
+    const q = ev.target.closest('.quitar-tipo');
+    if (q) {
+      ev.stopPropagation();
+      if (confirm(`¿Quitar "${q.dataset.q}" de la lista de tipos?\n(Los registros ya guardados no cambian.)`)) {
+        guardarTipos(tiposPropios().filter(t => t !== q.dataset.q));
+        pintarTipos(opcionElegida('f-tipo') === q.dataset.q ? '' : opcionElegida('f-tipo'));
+      }
+      return;
+    }
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.nuevo) {
+      const nombre = (prompt('Nombre del nuevo tipo de AP\n(ej.: Halogenuro metálico, Mercurio, Fluorescente)') || '').trim();
+      if (!nombre) return;
+      const existe = [...TIPOS_BASE, ...tiposPropios()].find(t => t.toLowerCase() === nombre.toLowerCase());
+      if (!existe) guardarTipos([...tiposPropios(), nombre]);
+      pintarTipos(existe || nombre); pintarPotencias(existe || nombre, $('f-pot').value);
+      return;
+    }
+    elegirOpcion('f-tipo', b.dataset.v); pintarPotencias(b.dataset.v, $('f-pot').value);
+  });
+  $('f-oper').querySelectorAll('button').forEach(b => b.onclick = () => elegirOpcion('f-oper', b.dataset.v));
+  $('f-pot').addEventListener('input', () => elegirOpcion('f-pot-opc', $('f-pot').value.trim()));
+
+  // fotos: se reducen a 1600 px (JPEG) para no llenar la memoria del celular
+  async function reducirFoto(archivo) {
+    const bmp = await createImageBitmap(archivo);
+    const esc2 = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * esc2); cv.height = Math.round(bmp.height * esc2);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    return await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.8));
+  }
+  function mostrarFoto(cual, blob) {
+    const caja = $(cual === 'pan' ? 'f-foto-pan' : 'f-foto-det'), img = caja.querySelector('img');
+    if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+    if (blob) { const u = URL.createObjectURL(blob); img.src = u; img.dataset.url = u; img.hidden = false; caja.classList.add('lista'); }
+    else { img.hidden = true; img.removeAttribute('src'); caja.classList.remove('lista'); }
+    caja.querySelector('.f-foto-vacio').style.visibility = blob ? 'hidden' : 'visible';
+  }
+  [['pan', 'f-foto-pan'], ['det', 'f-foto-det']].forEach(([cual, id]) => {
+    $(id).querySelector('input').onchange = async ev => {
+      const a = ev.target.files[0]; ev.target.value = ''; if (!a || !fActual) return;
+      try { avisar('Procesando foto…'); fActual.fotos[cual] = await reducirFoto(a); mostrarFoto(cual, fActual.fotos[cual]); avisar('Foto lista'); }
+      catch { avisar('No se pudo leer la foto. Intenta de nuevo.', true); }
+    };
+  });
+
+  function abrirHoja(id) { $('fondo-hoja').hidden = false; $(id).hidden = false; }
+  function cerrarHojas() { $('fondo-hoja').hidden = true; $('form-ap').hidden = true; $('registros').hidden = true; }
+
+  async function abrirFormularioAP(ft, previo) {
+    const p = ft ? (ft.properties || {}) : {};
+    const id = ft ? idAP(p) : previo.id;
+    if (!id) { avisar('Este AP no tiene código (EQP_AP_COD_EQP_AP).', true); return; }
+    previo = previo || registros.get(id) || null;
+    const ll = ft ? L.latLng(ft.geometry.coordinates[1], ft.geometry.coordinates[0]) : L.latLng(previo.lat, previo.lon);
+    // marca inmediata con el círculo y la X negra
+    marcaTemporal.clearLayers();
+    if (!previo) L.marker(ll, { icon: iconoInspeccion, interactive: false, zIndexOffset: 1600 }).addTo(marcaTemporal);
+    fActual = { ft, id, previo, ll, fotos: { pan: null, det: null } };
+    // encabezado: la SED y sus dos códigos
+    const sedEtq = previo ? previo.sedEtq : trabajo && trabajo.etq, sielse = previo ? previo.sielse : trabajo && trabajo.sielse;
+    $('f-sed').textContent = [sedEtq, sielse].filter(Boolean).join(' · ') || '—';
+    $('f-sed-nom').textContent = (previo ? previo.sedNombre : trabajo && trabajo.nombre) || '';
+    const { hechos, total } = avance();
+    $('f-cont').textContent = `${hechos} / ${total}`;
+    const poste = campo(p, 'EQP_AP_COD_NOD') || (previo && previo.poste) || '';
+    $('f-ap').textContent = `AP ${id}${poste ? ' · Poste ' + poste : ''}${previo ? ' · ✏️ corrigiendo registro' : ''}`;
+    // datos guardados (o vacío si es nuevo)
+    pintarTipos(previo ? previo.tipo : '');
+    pintarPotencias(previo ? previo.tipo : '', previo ? previo.potencia : '');
+    $('f-pot').value = previo ? previo.potencia : '';
+    elegirOpcion('f-oper', previo ? previo.operativo : '');
+    $('f-obs').value = previo ? (previo.obs || '') : '';
+    const potSis = campo(p, 'EQP_AP_LAMP_POT'), tipoSis = campo(p, 'EQP_AP_LAMP_TIP');
+    $('f-ref').textContent = (potSis || tipoSis) ? `Dato en el sistema: ${[tipoSis, potSis && potSis + ' W'].filter(Boolean).join(' · ')}` : '';
+    mostrarFoto('pan', null); mostrarFoto('det', null);
+    if (previo) {
+      try { const [a, b] = await Promise.all([BDI.leer('fotos', id + '|pan'), BDI.leer('fotos', id + '|det')]);
+        fActual.fotos.pan = a || null; fActual.fotos.det = b || null; mostrarFoto('pan', a); mostrarFoto('det', b); } catch {}
+    }
+    $('f-eliminar').hidden = !previo;
+    map.closePopup();
+    abrirHoja('form-ap');
+  }
+
+  async function guardarFormulario() {
+    if (!fActual) return;
+    const tipo = opcionElegida('f-tipo'), potencia = $('f-pot').value.trim(), operativo = opcionElegida('f-oper');
+    if (!tipo) return avisar('Elige el tipo de AP (Vapor de sodio o LED).', true);
+    if (!potencia || isNaN(+potencia)) return avisar('Indica la potencia del AP en W.', true);
+    if (!operativo) return avisar('Indica si el AP está operativo (Sí o No).', true);
+    if ((!fActual.fotos.pan || !fActual.fotos.det) &&
+        !confirm('Falta ' + (!fActual.fotos.pan && !fActual.fotos.det ? 'tomar las 2 fotos' : !fActual.fotos.pan ? 'la foto panorámica' : 'la foto de detalle') + '.\n¿Guardar igual?')) return;
+    const p = fActual.ft ? (fActual.ft.properties || {}) : {}, pr = fActual.previo || {};
+    const ahora = new Date();
+    const reg = {
+      id: fActual.id, lat: fActual.ll.lat, lon: fActual.ll.lng,
+      sedCod: pr.sedCod || (trabajo && trabajo.cod) || '', sedEtq: pr.sedEtq || (trabajo && trabajo.etq) || '',
+      sielse: pr.sielse || (trabajo && trabajo.sielse) || '', sedNombre: pr.sedNombre || (trabajo && trabajo.nombre) || '',
+      poste: campo(p, 'EQP_AP_COD_NOD') || pr.poste || '',
+      tipo, potencia: +potencia, operativo, obs: $('f-obs').value.trim(),
+      tipoSistema: campo(p, 'EQP_AP_LAMP_TIP') || pr.tipoSistema || '', potSistema: campo(p, 'EQP_AP_LAMP_POT') || pr.potSistema || '',
+      fotoPan: !!fActual.fotos.pan, fotoDet: !!fActual.fotos.det,
+      creado: pr.creado || ahora.toISOString(), modificado: ahora.toISOString(),
+      gpsLat: ultima ? ultima.lat : null, gpsLon: ultima ? ultima.lon : null
+    };
+    try {
+      await BDI.poner('registros', reg.id, reg);
+      if (fActual.fotos.pan) await BDI.poner('fotos', reg.id + '|pan', fActual.fotos.pan); else await BDI.borrar('fotos', reg.id + '|pan');
+      if (fActual.fotos.det) await BDI.poner('fotos', reg.id + '|det', fActual.fotos.det); else await BDI.borrar('fotos', reg.id + '|det');
+    } catch (err) { return avisar('No se pudo guardar: ' + err.message, true); }
+    registros.set(reg.id, reg);
+    marcaTemporal.clearLayers(); dibujarInspeccionados(); pintarAvance();
+    const { hechos, total } = avance();
+    cerrarHojas(); fActual = null;
+    avisar(`Guardado ✔ · ${hechos} de ${total} AP inspeccionados`);
+  }
+  function cancelarFormulario() { marcaTemporal.clearLayers(); fActual = null; cerrarHojas(); }
+  async function eliminarRegistro() {
+    if (!fActual || !fActual.previo) return;
+    if (!confirm(`¿Eliminar el registro del AP ${fActual.id}?\nSe borrarán también sus fotos.`)) return;
+    await BDI.borrar('registros', fActual.id); await BDI.borrar('fotos', fActual.id + '|pan'); await BDI.borrar('fotos', fActual.id + '|det');
+    registros.delete(fActual.id); dibujarInspeccionados(); pintarAvance(); cancelarFormulario();
+    avisar('Registro eliminado');
+  }
+  $('f-guardar').onclick = guardarFormulario;
+  $('f-cancelar').onclick = cancelarFormulario;
+  $('f-eliminar').onclick = eliminarRegistro;
+  $('fondo-hoja').onclick = () => { if (!$('registros').hidden) cerrarHojas(); };
+
+  // ---- lista de registros ----
+  const fechaTxt = iso => { const d = new Date(iso); return d.toLocaleDateString('es-PE') + ' ' + d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }); };
+  function registrosAlcance() {
+    const todo = document.querySelector('input[name="r-alc"]:checked').value === 'todo' || !trabajo;
+    return [...registros.values()]
+      .filter(r => todo || (trabajo.cod && r.sedCod === trabajo.cod) || (trabajo.etq && r.sedEtq === trabajo.etq))
+      .sort((a, b) => a.creado.localeCompare(b.creado));
+  }
+  function pintarRegistros() {
+    const lista = registrosAlcance();
+    $('r-tit').textContent = `${lista.length} AP registrado(s)` + (trabajo ? ` · SED ${trabajo.etq || ''}` : '');
+    $('r-lista').innerHTML = lista.length ? lista.map((r, i) => `<li data-id="${esc(r.id)}">
+        <span class="num">${i + 1}</span>
+        <span class="txt"><b>${esc(r.id)}</b><small>${esc(r.tipo)} · ${r.potencia} W · Operativo: ${esc(r.operativo)} · SED ${esc(r.sedEtq)}</small>
+          <small>${fechaTxt(r.modificado)}</small></span>
+        <span class="fot">${(r.fotoPan ? 1 : 0) + (r.fotoDet ? 1 : 0)}/2 📷</span></li>`).join('')
+      : '<li class="r-vacio">Aún no hay registros. Toca un AP azul para empezar.</li>';
+    $('r-lista').querySelectorAll('li[data-id]').forEach(li => li.onclick = () => {
+      const r = registros.get(li.dataset.id); cerrarHojas();
+      map.setView([r.lat, r.lon], Math.max(map.getZoom(), 17));
+      abrirFormularioAP(buscarFeatureAP(r.id), r);
+    });
+  }
+  $('tr-registros').onclick = () => { pintarRegistros(); abrirHoja('registros'); };
+  $('r-cerrar').onclick = cerrarHojas;
+  document.querySelectorAll('input[name="r-alc"]').forEach(r => r.onchange = pintarRegistros);
+
+  // ---- exportación a Excel (y ZIP con las fotos) ----
+  const nombreFoto = (r, cual) => `${r.id}_${cual === 'pan' ? 'panoramica' : 'detalle'}.jpg`;
+  async function armarExcel(lista) {
+    await cargarScript(URL_XLSX);
+    const filas = lista.map((r, i) => {
+      const d = new Date(r.modificado), u = aUTM(r.lat, r.lon);
+      return { 'N°': i + 1, 'Fecha': d.toLocaleDateString('es-PE'), 'Hora': d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        'Etiqueta SED': r.sedEtq, 'Código SIELSE': r.sielse, 'Código SED': r.sedCod, 'Nombre SED': r.sedNombre,
+        'Código AP': r.id, 'Código poste': r.poste, 'Tipo AP': r.tipo, 'Potencia AP (W)': r.potencia, 'Operativo': r.operativo,
+        'Observaciones': r.obs || '', 'Tipo AP (sistema)': r.tipoSistema, 'Potencia AP sistema (W)': r.potSistema,
+        'Latitud': +r.lat.toFixed(6), 'Longitud': +r.lon.toFixed(6), 'Zona UTM': `${u.zona}${u.hemi}`,
+        'UTM X (m)': +u.x.toFixed(2), 'UTM Y (m)': +u.y.toFixed(2),
+        'Foto panorámica': r.fotoPan ? nombreFoto(r, 'pan') : '', 'Foto detalle': r.fotoDet ? nombreFoto(r, 'det') : '' };
+    });
+    const ws = XLSX.utils.json_to_sheet(filas);
+    ws['!cols'] = Object.keys(filas[0] || { a: 1 }).map(k => ({ wch: Math.max(10, k.length + 2) }));
+    // enlaces a las fotos (funcionan al abrir el Excel dentro de la carpeta descomprimida)
+    const cols = Object.keys(filas[0] || {});
+    filas.forEach((f, i) => ['Foto panorámica', 'Foto detalle'].forEach(k => {
+      if (!f[k]) return; const ref = XLSX.utils.encode_cell({ r: i + 1, c: cols.indexOf(k) });
+      if (ws[ref]) ws[ref].l = { Target: 'fotos/' + f[k] };
+    }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Inspección AP');
+    return new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }));
+  }
+  function nombreBase() {
+    const hoy = new Date().toISOString().slice(0, 10), todo = document.querySelector('input[name="r-alc"]:checked').value === 'todo' || !trabajo;
+    return `Inspeccion_AP_${todo ? 'todas' : (trabajo.etq || trabajo.cod)}_${hoy}`;
+  }
+  function descargar(blob, nombre) {
+    const u = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = u; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 4000);
+  }
+  async function generarArchivo(conFotos) {
+    const lista = registrosAlcance();
+    if (!lista.length) { avisar('No hay registros para exportar.', true); return null; }
+    avisar('Preparando archivo…');
+    const xlsx = await armarExcel(lista), base = nombreBase();
+    if (!conFotos) return new File([xlsx], base + '.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    await cargarScript(URL_JSZIP);
+    const zip = new JSZip(); zip.file(base + '.xlsx', xlsx);
+    for (const r of lista) for (const cual of ['pan', 'det']) {
+      const f = await BDI.leer('fotos', r.id + '|' + cual); if (f) zip.file('fotos/' + nombreFoto(r, cual), f);
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    return new File([blob], base + '.zip', { type: 'application/zip' });
+  }
+  async function exportar(conFotos) {
+    try { const f = await generarArchivo(conFotos); if (!f) return; descargar(f, f.name); avisar(`Descargado: ${f.name} (carpeta Descargas)`); }
+    catch (err) { avisar('No se pudo exportar: ' + err.message + '. Abre la app una vez con internet y vuelve a intentar.', true); }
+  }
+  $('r-exp-zip').onclick = () => exportar(true);
+  $('r-exp-xlsx').onclick = () => exportar(false);
+  $('r-compartir').onclick = async () => {
+    try {
+      const f = await generarArchivo(true); if (!f) return;
+      if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: f.name });
+      else { descargar(f, f.name); avisar('Tu celular no permite compartir directo; se descargó el archivo.'); }
+    } catch (err) { if (err.name !== 'AbortError') avisar('No se pudo compartir: ' + err.message, true); }
+  };
+
+  // =================== MAPAS SIN INTERNET (recortes de la vista) ===================
+  // Guarda una imagen del mapa base de la zona visible (y opcionalmente con un nivel más de detalle),
+  // ubicada exactamente en sus coordenadas. Se muestra debajo de las capas eléctricas aunque no haya señal.
+  const BDM = {
+    abrir() { return new Promise((ok, mal) => { const r = indexedDB.open('herramientaAP_mapas', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('recortes'); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); },
+    async op(modo, fn) { const db = await this.abrir(); return new Promise((ok, mal) => {
+      const t = db.transaction('recortes', modo); const r = fn(t.objectStore('recortes')); t.oncomplete = () => ok(r && r.result); t.onerror = () => mal(t.error); }); },
+    poner(k, v) { return this.op('readwrite', s => s.put(v, k)); },
+    borrar(k) { return this.op('readwrite', s => s.delete(k)); },
+    async todos() { const db = await this.abrir(); return new Promise((ok, mal) => {
+      const res = [], r = db.transaction('recortes').objectStore('recortes').openCursor();
+      r.onsuccess = () => { const c = r.result; if (c) { res.push(c.value); c.continue(); } else ok(res); }; r.onerror = () => mal(r.error); }); }
+  };
+  map.createPane('recortes'); map.getPane('recortes').style.zIndex = 250;   // encima del mapa base, debajo de las capas
+  const recortes = new Map();      // id → { datos, capa }
+  const tamTxt = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB';
+
+  async function capturarZoom(base, limites, z) {
+    const nw = map.project(limites.getNorthWest(), z).floor(), se = map.project(limites.getSouthEast(), z).ceil();
+    const t0 = nw.divideBy(256).floor(), t1 = se.subtract([1, 1]).divideBy(256).floor();
+    const n = (t1.x - t0.x + 1) * (t1.y - t0.y + 1);
+    if (n > 400) throw new Error('la zona es demasiado grande; acércate un poco más');
+    const cv = document.createElement('canvas'); cv.width = se.x - nw.x; cv.height = se.y - nw.y;
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#ddd'; ctx.fillRect(0, 0, cv.width, cv.height);
+    let hechos = 0, fallas = 0; const tareas = [];
+    for (let x = t0.x; x <= t1.x; x++) for (let y = t0.y; y <= t1.y; y++) {
+      const url = base.getTileUrl(Object.assign(L.point(x, y), { z }));
+      tareas.push(fetch(url, { mode: 'cors' }).then(r => { if (!r.ok) throw 0; return r.blob(); }).then(createImageBitmap)
+        .then(img => ctx.drawImage(img, x * 256 - nw.x, y * 256 - nw.y, 256, 256)).catch(() => fallas++)
+        .finally(() => { hechos++; $('rc-estado').textContent = `Guardando teselas… ${hechos} de ${n}`; }));
+    }
+    await Promise.all(tareas);
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.85));
+    return { blob, fallas, n, bounds: [[map.unproject(se, z).lat, map.unproject(nw, z).lng], [map.unproject(nw, z).lat, map.unproject(se, z).lng]] };
+  }
+  async function recortarVista() {
+    const nombre = $('rc-nombre').value.trim() || `Recorte ${recortes.size + 1}`;
+    if (!navigator.onLine) { avisar('Para recortar se necesita internet.', true); return; }
+    const base = map.hasLayer(topo) ? topo : osm, limites = map.getBounds(), z = map.getZoom();
+    const zMax = base.options.maxZoom || 18;
+    $('rc-recortar').disabled = true;
+    try {
+      const niveles = [z]; if ($('rc-detalle').checked && z + 1 <= zMax) niveles.push(z + 1);
+      const imgs = [];
+      for (const nz of niveles) imgs.push({ z: nz, ...(await capturarZoom(base, limites, nz)) });
+      const id = 'rc' + Date.now();
+      const datos = { id, nombre, fecha: new Date().toISOString(), base: base === topo ? 'OpenTopoMap' : 'OpenStreetMap',
+        imgs: imgs.map(i => ({ z: i.z, blob: i.blob, bounds: i.bounds })), visible: true,
+        bytes: imgs.reduce((a, i) => a + i.blob.size, 0) };
+      await BDM.poner(id, datos);
+      recortes.set(id, { datos, capa: null }); mostrarRecorte(id, true);
+      const fallas = imgs.reduce((a, i) => a + i.fallas, 0);
+      $('rc-estado').textContent = fallas ? `Guardado con ${fallas} tesela(s) sin cargar (se ven en gris).` : 'Recorte guardado ✔';
+      $('rc-nombre').value = ''; pintarRecortes(); avisar(`Recorte "${nombre}" guardado (${tamTxt(datos.bytes)})`);
+    } catch (err) {
+      $('rc-estado').textContent = 'No se pudo recortar: ' + err.message; avisar('No se pudo recortar: ' + err.message, true);
+    } finally { $('rc-recortar').disabled = false; }
+  }
+  function mostrarRecorte(id, ver) {
+    const r = recortes.get(id); if (!r) return;
+    if (r.capa) { map.removeLayer(r.capa); r.capa.eachLayer(l => URL.revokeObjectURL(l._url)); r.capa = null; }
+    if (ver) {
+      // imagen del nivel de detalle más alto encima, la del nivel base debajo
+      r.capa = L.layerGroup(r.datos.imgs.slice().sort((a, b) => a.z - b.z).map(i =>
+        L.imageOverlay(URL.createObjectURL(i.blob), i.bounds, { pane: 'recortes', interactive: false }))).addTo(map);
+    }
+    r.datos.visible = ver; BDM.poner(id, r.datos).catch(() => {});
+  }
+  function pintarRecortes() {
+    const lista = [...recortes.values()].sort((a, b) => b.datos.fecha.localeCompare(a.datos.fecha));
+    $('rc-lista').innerHTML = lista.length ? lista.map(({ datos: d }) => `<li class="${d.visible ? 'activo' : ''}">
+        <span class="rc-nom"><b>${esc(d.nombre)}</b><small>${new Date(d.fecha).toLocaleDateString('es-PE')} · ${d.base} · ${tamTxt(d.bytes)}</small></span>
+        <button class="rc-abrir" data-id="${d.id}" aria-pressed="${d.visible}">${d.visible ? 'Cerrar' : 'Abrir'}</button>
+        <button class="rc-ir" data-id="${d.id}" title="Ir a la zona">Ir</button>
+        <button class="rc-borrar" data-id="${d.id}" title="Borrar recorte">🗑</button></li>`).join('')
+      : '<li><span class="rc-nom"><small>Aún no hay recortes guardados.</small></span></li>';
+    $('rc-lista').querySelectorAll('.rc-abrir').forEach(b => b.onclick = () => {
+      const r = recortes.get(b.dataset.id); mostrarRecorte(b.dataset.id, !r.datos.visible); pintarRecortes(); });
+    $('rc-lista').querySelectorAll('.rc-ir').forEach(b => b.onclick = () => {
+      const r = recortes.get(b.dataset.id); if (!r.datos.visible) { mostrarRecorte(b.dataset.id, true); pintarRecortes(); }
+      cerrarPanelesMovil(); map.fitBounds(r.datos.imgs[0].bounds); });
+    $('rc-lista').querySelectorAll('.rc-borrar').forEach(b => b.onclick = async () => {
+      const r = recortes.get(b.dataset.id);
+      if (!confirm(`¿Borrar el recorte "${r.datos.nombre}"?`)) return;
+      mostrarRecorte(b.dataset.id, false); recortes.delete(b.dataset.id); await BDM.borrar(b.dataset.id).catch(() => {});
+      pintarRecortes(); avisar('Recorte borrado');
+    });
+  }
+  $('b-offline').onclick = () => { if (abrirPanel('offline')) { pintarRecortes(); $('rc-estado').textContent = navigator.onLine ? '' : 'Sin internet: puedes abrir tus recortes guardados.'; } };
+  $('rc-recortar').onclick = recortarVista;
+  // al abrir la app, se vuelven a mostrar los recortes que estaban abiertos
+  BDM.todos().then(lista => { lista.forEach(d => { recortes.set(d.id, { datos: d, capa: null }); if (d.visible) mostrarRecorte(d.id, true); }); }).catch(() => {});
+  window.addEventListener('offline', () => { if ([...recortes.values()].some(r => r.datos.visible)) avisar('Sin internet: se muestran tus recortes guardados'); });
 
   // =================== BUSCADOR DE CÓDIGOS (en todas las capas cargadas) ===================
   const normCod = v => String(v ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
