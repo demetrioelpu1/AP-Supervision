@@ -97,7 +97,14 @@
   .res-borrar{color:#ff8f8f}
   .res-ojo:hover,.res-borrar:hover{background:var(--panel-2)}
   .res-todo{width:100%;margin-top:6px;color:#ff8f8f !important;border-color:#7a3a3a !important}
-  details.capa-bloque>summary{cursor:pointer;list-style:none}
+  details.capa-bloque>summary{cursor:pointer;list-style:none;margin:0 -4px 6px;padding:8px 10px;border-radius:8px;
+    background:linear-gradient(100deg,#1b5e6b 0%,#24485f 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  details.capa-bloque>summary:hover{background:linear-gradient(100deg,#20707f 0%,#2b5672 100%)}
+  details.capa-bloque>summary b{color:#fff}
+  details.capa-bloque>summary .estado-capa{color:#bfe3e8}
+  details.capa-bloque>summary::after{color:#bfe3e8 !important}
+  details.capa-bloque>summary .muestra{box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+  details.capa-bloque{border-top:0 !important;padding-top:4px !important}
   details.capa-bloque>summary::-webkit-details-marker{display:none}
   details.capa-bloque>summary::after{content:"▸";margin-left:auto;color:var(--muted);transition:transform .15s}
   details.capa-bloque[open]>summary::after{transform:rotate(90deg)}
@@ -892,14 +899,13 @@
     campoSugerido: /^NOD_COD_ALI?$/i,
     modos: [
       { nombre: 'Material de soporte (como ArcMap)', campo: /^NOD_COD_MA(T_SPT)?$/i,
-        clases: { FV: ['#fefd32', 'Fibra de vidrio'], CO: ['#bfbfbf', 'Concreto'], FI: ['#ffb893', 'Fierro'],
+        clases: { FV: ['#fefd32', 'Fibra de vidrio'], CO: ['#00e640', 'Concreto'], FI: ['#ffb893', 'Fierro'],
                   FG: ['#db7d7a', 'Fierro galvanizado'], FN: ['#8a1100', 'Fierro negro'], HO: ['#a1e82c', 'Hormigón'],
-                  MA: ['#000000', 'Madera'], NN: ['#000000', 'Ninguno'], RI: ['#885f0c', 'Riel'] },
-        tamano: { FV: 9.3 },                 // 7 pt; el resto 6 pt (8 px)
-        borde: { MA: '#ffffff' } },          // madera: símbolo especial en ArcMap, aquí negro con borde blanco
+                  MA: ['#ff00ff', 'Madera'], NN: ['#000000', 'Ninguno'], RI: ['#885f0c', 'Riel'] },
+        tamano: { FV: 9.3 } },               // 7 pt; el resto 6 pt (8 px). Concreto y madera: colores pedidos por el usuario
       { nombre: 'Alimentador', campo: /^NOD_COD_ALI?$/i }
     ],
-    etiquetaMapa: p => p.NOD_COD_NOD || p.NOD_COD_NO || '', colorEtiqueta: '#0085fc',
+    // sin etiqueta en el mapa: solo el símbolo del poste (el código se ve al tocarlo)
     titulo: p => 'Poste MT ' + (p.NOD_COD_NOD || p.NOD_COD_NO || ''),
     etiquetas: ALIAS_NOD,
     ocultar: /^(GlobalID|OBJECTID|SHAPE.*|Shape.*|NOD_USR_.*|NOD_FEC_CR.*|NOD_FEC_AC.*|NOD_VNR_.*|NOD_COD_EMP?)$/i });
@@ -962,15 +968,14 @@
     campoSugerido: /^NOD_COD_SED$/i,
     modos: [
       { nombre: 'Material del poste (como ArcMap)', campo: /^NOD_COD_MA(T_SPT)?$/i,
-        clases: { CO: ['#bfbfbf', 'Concreto'], FI: ['#ffb893', 'Fierro'], FG: ['#db7d7a', 'Fierro galvanizado'],
-                  FN: ['#8a1100', 'Fierro negro'], HO: ['#a1e82c', 'Hormigón'], MA: ['#000000', 'Madera'],
+        clases: { CO: ['#00b4ff', 'Concreto'], FI: ['#ffb893', 'Fierro'], FG: ['#db7d7a', 'Fierro galvanizado'],
+                  FN: ['#8a1100', 'Fierro negro'], HO: ['#a1e82c', 'Hormigón'], MA: ['#1d3fd6', 'Madera'],
                   NN: ['#33b420', 'Ninguno'], RI: ['#885f0c', 'Riel'] },
-        borde: { MA: '#ffffff' } },      // madera y ninguno usan caracteres especiales de ESRI en ArcMap
+      },                                 // concreto y madera: colores pedidos por el usuario
       { nombre: 'SED', campo: /^NOD_COD_SED$/i },
       { nombre: 'Alimentador', campo: /^NOD_COD_ALI?$/i }
     ],
-    etiquetaMapa: p => normTxt(campo(p, 'NOD_COD_MAT_SPT', 'NOD_COD_MA')) === 'NN' ? '' : campo(p, 'NOD_COD_NOD', 'NOD_COD_NO'),
-    colorEtiqueta: '#ff0000',
+    // sin etiqueta en el mapa: solo el símbolo del poste (el código se ve al tocarlo)
     titulo: p => 'Poste BT ' + campo(p, 'NOD_COD_NOD', 'NOD_COD_NO'),
     etiquetas: conRecortes({ NOD_COD_NOD: 'Código Estructura BT', NOD_COD_NOD_MT: 'Código Estructura MT', NOD_COD_SED: 'Código SED',
       NOD_ETQ_SED: 'Etiqueta SED', NOD_TIP_SRV: 'Tipo servicio', NOD_COD_SAL: 'Código salida BT', NOD_NOM_SAL: 'Circuito BT',
