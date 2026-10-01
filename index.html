@@ -129,6 +129,18 @@
   .f-opc button.tipo-propio{position:relative;padding-right:26px}
   .f-opc button .quitar-tipo{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:.7}
   .f-opc button.agregar-tipo{flex:0 0 auto;border-style:dashed;color:#8fc1ff}
+  /* ficha de la SED plegada: queda solo la inspección */
+  .tr-mini{display:none;width:28px;height:28px;margin-left:8px}
+  .tr-avance-txt em{display:none;font-style:normal;color:#8fc1ff;font-weight:600}
+  .trabajo.plegada .tr-fila,.trabajo.plegada .tr-chips,.trabajo.plegada .tr-otras{display:none}
+  .trabajo.plegada .tr-avance{margin-top:0;border-top:0;padding-top:0}
+  .trabajo.plegada .tr-avance-txt{align-items:center}
+  .trabajo.plegada .tr-avance-txt span{flex:1}
+  .trabajo.plegada .tr-avance-txt em{display:inline}
+  .trabajo.plegada .tr-mini{display:grid}
+  .trabajo.plegada .tr-reg{padding:4px;margin-top:5px}
+  .trabajo.plegada{padding:6px 10px}
+  @media (max-width:600px){ body.con-trabajo.trabajo-plegada .columna{top:calc(64px + 120px + env(safe-area-inset-top,0px))} }
   /* avance de la inspección en la barra de trabajo */
   .tr-avance{margin-top:8px;border-top:1px solid var(--borde);padding-top:7px}
   .tr-avance-txt{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--muted)}
@@ -588,6 +600,8 @@
 <section id="trabajo" class="trabajo" aria-label="SED de trabajo" hidden>
   <div class="tr-fila">
     <div class="tr-tit"><small>SED de trabajo</small><b id="tr-etq">—</b><span id="tr-sub"></span></div>
+    <button id="tr-plegar" class="tr-btn" aria-label="Plegar la ficha de la SED" title="Plegar (deja solo la inspección)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
     <button id="tr-zoom" class="tr-btn" aria-label="Acercar a la SED de trabajo" title="Acercar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button id="tr-salir" class="tr-btn" aria-label="Salir de la SED de trabajo" title="Salir">
@@ -596,7 +610,9 @@
   <div class="tr-chips" id="tr-chips"></div>
   <label class="tr-otras"><input type="checkbox" id="tr-otras"> Ver también las demás SED</label>
   <div class="tr-avance">
-    <div class="tr-avance-txt"><span>Inspección de AP</span><b id="tr-cuenta">0 / 0</b></div>
+    <div class="tr-avance-txt"><span>Inspección de AP <em id="tr-mini-sed"></em></span><b id="tr-cuenta">0 / 0</b>
+      <button id="tr-desplegar" class="tr-btn tr-mini" aria-label="Desplegar la ficha de la SED" title="Desplegar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <div class="tr-barra"><i id="tr-barra"></i></div>
     <button id="tr-registros" class="tr-reg">Registros y exportar a Excel</button>
   </div>
@@ -1876,6 +1892,7 @@
   function pintarBarraTrabajo() {
     const n = contarTrabajo();
     $('tr-etq').textContent = [trabajo.etq, trabajo.sielse].filter(Boolean).join(' · ') || trabajo.cod;
+    $('tr-mini-sed').textContent = '· ' + (trabajo.etq || trabajo.cod || '');
     $('tr-sub').textContent = trabajo.nombre || '';
     $('tr-chips').innerHTML = CAPAS_SED.map(([id, nom], i) => {
       if (n[i] === null) return `<span class="tr-chip apagado" title="Capa no cargada">${nom} <small>sin cargar</small></span>`;
@@ -1918,6 +1935,13 @@
     redibujarTrabajo(); avisar('Se muestran nuevamente todas las SED');
   }
   $('tr-salir').onclick = salirTrabajo;
+  function plegarTrabajo(si) {
+    $('trabajo').classList.toggle('plegada', si); document.body.classList.toggle('trabajo-plegada', si);
+    try { localStorage.setItem('trabajoPlegado', si ? '1' : '0'); } catch {}
+  }
+  $('tr-plegar').onclick = () => plegarTrabajo(true);
+  $('tr-desplegar').onclick = () => plegarTrabajo(false);
+  try { if (localStorage.getItem('trabajoPlegado') === '1') plegarTrabajo(true); } catch {}
   $('tr-zoom').onclick = encuadrarTrabajo;
   $('tr-otras').onchange = ev => { trabajo.verOtras = ev.target.checked; redibujarTrabajo(); pintarBarraTrabajo(); };
 
