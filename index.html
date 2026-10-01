@@ -87,6 +87,27 @@
   .etq-punto{position:absolute;left:0;top:6px;transform:translateX(-50%);white-space:nowrap;
     font:600 11px "Barlow Semi Condensed",sans-serif;
     text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff}
+  /* barra de la SED de trabajo */
+  .trabajo{position:absolute;z-index:1000;left:12px;top:calc(12px + env(safe-area-inset-top,0px));
+    width:min(330px,calc(100% - 210px));background:var(--panel);color:var(--ink);border:2px solid #0a6cff;
+    border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.4);padding:8px 10px}
+  .trabajo[hidden]{display:none}
+  .tr-fila{display:flex;align-items:center;gap:6px}
+  .tr-tit{flex:1;min-width:0;line-height:1.15}
+  .tr-tit small{display:block;font-size:.72rem;color:#8fc1ff;text-transform:uppercase;letter-spacing:.04em}
+  .tr-tit b{font:700 1.05rem "Barlow Semi Condensed",sans-serif}
+  .tr-tit span{display:block;font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr-btn{width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:6px;cursor:pointer;
+    background:transparent;border:1px solid var(--borde);color:var(--ink);padding:0}
+  .tr-btn svg{width:17px;height:17px}
+  .tr-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .tr-chip{display:inline-flex;align-items:center;gap:5px;font:600 .82rem "Barlow Semi Condensed",sans-serif;cursor:pointer;
+    border-radius:14px;padding:4px 9px;border:1px solid #0a6cff;background:#0a6cff;color:#fff}
+  .tr-chip.apagado{background:transparent;color:var(--muted);border-color:var(--borde);text-decoration:line-through}
+  .tr-chip small{font-weight:400;opacity:.85}
+  .tr-otras{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:.8rem;color:var(--muted);cursor:pointer}
+  @media (max-width:600px){ .trabajo{left:8px;right:auto;width:calc(100% - 70px);top:calc(64px + env(safe-area-inset-top,0px))}
+    body.con-trabajo .columna{top:calc(64px + 150px + env(safe-area-inset-top,0px))} }
   /* resumen de capas cargadas */
   .resumen{border-top:1px solid var(--borde);padding-top:6px}
   .res-fila{display:flex;align-items:center;gap:8px;padding:4px 0}
@@ -462,6 +483,18 @@
 
 
 <div id="aviso" class="aviso" role="status" hidden></div>
+<section id="trabajo" class="trabajo" aria-label="SED de trabajo" hidden>
+  <div class="tr-fila">
+    <div class="tr-tit"><small>SED de trabajo</small><b id="tr-etq">—</b><span id="tr-sub"></span></div>
+    <button id="tr-zoom" class="tr-btn" aria-label="Acercar a la SED de trabajo" title="Acercar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button id="tr-salir" class="tr-btn" aria-label="Salir de la SED de trabajo" title="Salir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="tr-chips" id="tr-chips"></div>
+  <label class="tr-otras"><input type="checkbox" id="tr-otras"> Ver también las demás SED</label>
+</section>
+
 <aside id="cursor" class="cursor" aria-label="Coordenadas del puntero">
   <div class="resto">
     <div class="celda"><span>Zona UTM</span><b id="c-zona">—</b></div>
@@ -1079,6 +1112,7 @@
   map.on('zoomend moveend', dibujarPastorales);
   // color de la X: rojo con el símbolo único; si se colorea por otro campo, el color de su clase
   function colorAP(c, ft) {
+    if (trabajo && perteneceSED(c, ft)) return '#0a6cff';          // AP de la SED de trabajo: azul
     const e = estado[c.id];
     return (!e || !e.modo || e.modo.unico || !$(`${c.id}-porcolor`).checked) ? '#ff0000' : colorDe(c, ft);
   }
@@ -1426,7 +1460,7 @@
     const f = e.filtro;
     e.capa = L.geoJSON(e.gj, {
       renderer: lienzo,
-      filter: ft => !f || f.valores.has(txt(ft.properties && ft.properties[f.campo])),
+      filter: ft => (!f || f.valores.has(txt(ft.properties && ft.properties[f.campo]))) && pasaTrabajo(c, ft),
       style: ft => c.estilo === 'circulo' ? estiloPunto(c, ft) : estiloDe(c, ft),
       pointToLayer: (ft, ll) => c.icono
         ? L.marker(ll, { icon: L.divIcon({ className: 'ico-capa', iconSize: [24, 26], iconAnchor: [12, 15],
@@ -1437,6 +1471,7 @@
         : L.circleMarker(ll, c.estilo === 'circulo' ? estiloPunto(c, ft)
             : { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
       onEachFeature: (ft, lyr) => lyr.on('click', ev => {
+        if (c.id === 'sed') seleccionarSED(ft);
         L.popup({ maxWidth: 320 }).setLatLng(ev.latlng).setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
       })
     });
@@ -1555,7 +1590,7 @@
       $(`${c.id}-info`).innerHTML = `<b>${esc(archivo.name)}</b> · ${n.toLocaleString('es-PE')} elemento(s) · ${campos.length} campo(s)` +
         (avisos.length ? '<br>' + avisos.map(esc).join('<br>') : '');
       if (!desdeMemoria) { cerrarPanelesMovil(); map.fitBounds(estado[c.id].capa.getBounds(), margen()); }
-      actualizarResumen();
+      actualizarResumen(); if (trabajo) pintarBarraTrabajo();
       avisar(`Capa cargada · ${c.nombre}: ${n.toLocaleString('es-PE')} elemento(s)`, avisos.some(a => a.startsWith('⚠')));
     } catch (err) {
       avisar(`No se pudo leer ${archivo.name}: ${err.message}`, true);
@@ -1566,7 +1601,7 @@
     $(`${c.id}-archivo`).onchange = ev => { const a = ev.target.files[0]; if (a) cargarArchivo(c, a); ev.target.value = ''; };
     $(`${c.id}-ver`).onchange = ev => { const e = estado[c.id]; if (e && e.capa) ev.target.checked ? e.capa.addTo(map) : map.removeLayer(e.capa);
       if (e && e.extras) ev.target.checked ? e.extras.addTo(map) : map.removeLayer(e.extras);
-      dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales(); actualizarResumen(); };
+      dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales(); actualizarResumen(); if (trabajo) pintarBarraTrabajo(); };
     $(`${c.id}-zoom`).onclick = () => { const e = estado[c.id]; if (e && e.capa.getLayers().length) map.fitBounds(e.capa.getBounds(), margen()); };
     $(`${c.id}-quitar`).onclick = () => {
       const e = estado[c.id]; if (e && e.capa) map.removeLayer(e.capa);
@@ -1574,7 +1609,7 @@
       delete estado[c.id]; dibujarFlechas(); dibujarEtiquetas(); dibujarPastorales();
       BD.borrar(c.id).catch(() => {});
       $(`${c.id}-vacio`).hidden = false; $(`${c.id}-lleno`).hidden = true;
-      actualizarResumen();
+      actualizarResumen(); if (trabajo) pintarBarraTrabajo();
       avisar(`Capa quitada del mapa · ${c.nombre}`);
     };
     $(`${c.id}-campo`).onchange = () => llenarValores(c);
@@ -1590,6 +1625,79 @@
   });
 
   actualizarResumen();
+
+  // =================== SED DE TRABAJO ===================
+  // Al tocar una SED: se muestran solo su red BT, sus postes BT y sus AP (AP en azul).
+  // Campos que relacionan cada capa con su SED (código SED000… y, de respaldo, la etiqueta SE…)
+  const RELACION_SED = {
+    bt:        { cod: ['TBT_COD_SED', 'TBT_COD_SE'],    etq: ['TBT_ETQ_SED', 'TBT_ETQ_SE'] },
+    postes_bt: { cod: ['NOD_COD_SED', 'NOD_COD_SE'],    etq: ['NOD_ETQ_SED', 'NOD_ETQ_SE'] },
+    ap:        { cod: ['EQP_AP_COD_SED'],               etq: ['EQP_AP_ETQ_SED'] }
+  };
+  let trabajo = null;   // { cod, etq, sielse, nombre, latlng, verOtras }
+  function perteneceSED(c, ft) {
+    const r = RELACION_SED[c.id]; if (!r || !trabajo) return false;
+    const p = ft.properties || {};
+    const cod = normTxt(campo(p, ...r.cod)), etq = normTxt(campo(p, ...r.etq));
+    return (trabajo.cod && cod === trabajo.cod) || (trabajo.etq && etq === trabajo.etq);
+  }
+  function pasaTrabajo(c, ft) {
+    if (!trabajo || trabajo.verOtras || !RELACION_SED[c.id]) return true;
+    return perteneceSED(c, ft);
+  }
+  const capaSedTrabajo = L.layerGroup().addTo(map);
+  const CAPAS_SED = [['bt', 'Red BT'], ['postes_bt', 'Postes BT'], ['ap', 'AP']];
+
+  function contarTrabajo() {
+    return CAPAS_SED.map(([id]) => { const c = CAPAS.find(k => k.id === id), e = estado[id];
+      return e ? e.gj.features.filter(ft => perteneceSED(c, ft)).length : null; });
+  }
+  function pintarBarraTrabajo() {
+    const n = contarTrabajo();
+    $('tr-etq').textContent = [trabajo.etq, trabajo.sielse].filter(Boolean).join(' · ') || trabajo.cod;
+    $('tr-sub').textContent = trabajo.nombre || '';
+    $('tr-chips').innerHTML = CAPAS_SED.map(([id, nom], i) => {
+      if (n[i] === null) return `<span class="tr-chip apagado" title="Capa no cargada">${nom} <small>sin cargar</small></span>`;
+      const vis = $(`${id}-ver`).checked;
+      return `<button class="tr-chip${vis ? '' : ' apagado'}" data-id="${id}" aria-pressed="${vis}">${nom} <small>${n[i].toLocaleString('es-PE')}</small></button>`;
+    }).join('');
+    $('tr-chips').querySelectorAll('button.tr-chip').forEach(b => b.onclick = () => {
+      const ck = $(`${b.dataset.id}-ver`); ck.checked = !ck.checked; ck.dispatchEvent(new Event('change')); pintarBarraTrabajo();
+    });
+    $('tr-otras').checked = !!trabajo.verOtras;
+  }
+  function redibujarTrabajo() {
+    CAPAS_SED.forEach(([id]) => { const c = CAPAS.find(k => k.id === id); if (estado[id]) dibujar(c); });
+    dibujarPastorales();
+  }
+  function encuadrarTrabajo() {
+    const grupo = L.featureGroup();
+    CAPAS_SED.forEach(([id]) => { const e = estado[id]; if (e && e.capa && map.hasLayer(e.capa)) e.capa.eachLayer(l => {
+      const c = CAPAS.find(k => k.id === id); if (l.feature && perteneceSED(c, l.feature)) grupo.addLayer(l); }); });
+    if (grupo.getLayers().length) map.fitBounds(grupo.getBounds(), margen({ maxZoom: 18 }));
+    else if (trabajo.latlng) map.setView(trabajo.latlng, Math.max(map.getZoom(), 17));
+  }
+  function seleccionarSED(ft) {
+    const p = ft.properties || {};
+    trabajo = { cod: normTxt(campo(p, 'SED_COD_SED', 'SED_COD__1')), etq: normTxt(campo(p, 'SED_ETQ_SED', 'SED_ETQ_SE')),
+                sielse: campo(p, 'SED_ETQ_SIELSE', 'SED_ETQ_SI'), nombre: arreglarTexto(campo(p, 'SED_NOM_SED', 'SED_NOM_SE')),
+                latlng: L.latLng(ft.geometry.coordinates[1], ft.geometry.coordinates[0]), verOtras: trabajo ? trabajo.verOtras : false };
+    capaSedTrabajo.clearLayers();
+    L.circleMarker(trabajo.latlng, { radius: 20, color: '#0a6cff', weight: 4, fillColor: '#0a6cff', fillOpacity: 0.12, interactive: false }).addTo(capaSedTrabajo);
+    $('trabajo').hidden = false; document.body.classList.add('con-trabajo');
+    redibujarTrabajo(); pintarBarraTrabajo(); encuadrarTrabajo();
+    const n = contarTrabajo();
+    if (n.every(x => x === null)) avisar('Carga la red BT, los postes BT o los AP para ver lo que pertenece a esta SED.', true);
+    else avisar(`SED de trabajo: ${$('tr-etq').textContent}`);
+  }
+  function salirTrabajo() {
+    trabajo = null; capaSedTrabajo.clearLayers();
+    $('trabajo').hidden = true; document.body.classList.remove('con-trabajo');
+    redibujarTrabajo(); avisar('Se muestran nuevamente todas las SED');
+  }
+  $('tr-salir').onclick = salirTrabajo;
+  $('tr-zoom').onclick = encuadrarTrabajo;
+  $('tr-otras').onchange = ev => { trabajo.verOtras = ev.target.checked; redibujarTrabajo(); pintarBarraTrabajo(); };
 
   // =================== BUSCADOR DE CÓDIGOS (en todas las capas cargadas) ===================
   const normCod = v => String(v ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
