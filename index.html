@@ -347,6 +347,7 @@
     padding:7px 12px;font-size:.88rem;box-shadow:0 4px 16px rgba(0,0,0,.35)
   }
   .aviso.error{color:var(--warn)}
+  .aviso{white-space:pre-line}
   @media (max-width:600px){
     .aviso{bottom:calc(118px + env(safe-area-inset-bottom,0px))}
     body.sin-utm .aviso{bottom:calc(40px + env(safe-area-inset-bottom,0px))}
@@ -790,7 +791,7 @@
   function avisar(txt, esError = false, ms = 3500) {
     const a = $('aviso');
     a.textContent = txt; a.classList.toggle('error', esError); a.hidden = false;
-    clearTimeout(tAviso); tAviso = setTimeout(() => a.hidden = true, esError ? 7000 : ms);
+    clearTimeout(tAviso); tAviso = setTimeout(() => a.hidden = true, ms !== 3500 ? ms : esError ? 7000 : ms);
   }
 
   // ---------- Conversión a UTM (WGS84) ----------
@@ -1821,8 +1822,10 @@
       if (!desdeMemoria) { cerrarPanelesMovil(); map.fitBounds(estado[c.id].capa.getBounds(), margen()); }
       actualizarResumen(); if (trabajo) pintarBarraTrabajo();
       avisar(`Capa cargada · ${c.nombre}: ${n.toLocaleString('es-PE')} elemento(s)`, avisos.some(a => a.startsWith('⚠')));
+      return { ok: true, n };
     } catch (err) {
       avisar(`No se pudo leer ${archivo.name}: ${err.message}`, true);
+      return { ok: false, error: err.message };
     }
   }
 
@@ -2497,15 +2500,19 @@
       const cache = await caches.open('ap-compartidos');
       const claves = await cache.keys();
       if (!claves.length) { avisar('No llegó ningún archivo. Intenta compartirlo de nuevo.', true); return; }
-      let n = 0;
+      const lineas = []; let fallas = 0;
       for (const k of claves) {
-        const r = await cache.match(k);
-        const nombre = decodeURIComponent(r.headers.get('x-nombre') || 'archivo.geojson');
-        const texto = await r.text();
-        await cargarAutomatico({ name: nombre, text: async () => texto });
-        await cache.delete(k); n++;
+        const resp = await cache.match(k);
+        const nombre = decodeURIComponent(resp.headers.get('x-nombre') || 'archivo.geojson');
+        avisar(`Cargando ${nombre}…`);
+        const res = await cargarAutomatico({ name: nombre, text: () => resp.text() });
+        await cache.delete(k);
+        if (res.ok) lineas.push(`✔ ${nombre} → ${res.capa.nombre}: ${res.n.toLocaleString('es-PE')} elementos`);
+        else { fallas++; lineas.push(`✘ ${nombre}: ${res.error}`); }
       }
-      avisar(`${n} archivo(s) recibido(s) desde otra app`);
+      // resumen de lo recibido (queda más tiempo en pantalla si algo falló)
+      avisar(lineas.join('\n'), fallas > 0, fallas ? 15000 : 6000);
+      if (!fallas && !esMovil() && panelCapas.hidden) abrirPanel('capas');
     } catch (err) { avisar('No se pudo leer el archivo compartido: ' + err.message, true); }
   }
 
@@ -2551,27 +2558,46 @@
       .replace(/\.(geo)?json$/, '').replace(/[^a-z0-9]+/g, '_'); // espacios y guiones → _
     return NOMBRES_CAPA.find(k => k.prueba.test(n)) || null;
   }
+  // reconoce la capa por los nombres de sus campos (sirve aunque WhatsApp cambie el nombre del archivo)
+  function capaPorCampos(d) {
+    const f = (d.features || [])[0] || {}, p = f.properties || f.attributes || {}, k = Object.keys(p).join(' ');
+    if (/\bEQP_AP_/.test(k)) return 'ap';
+    if (/\bTBT_/.test(k)) return 'bt';
+    if (/\bTMT_/.test(k)) return 'mt';
+    if (/\bSED_/.test(k)) return 'sed';
+    if (/\bNOD_/.test(k)) {
+      const cod = String(p.NOD_COD_NOD || p.NOD_COD_NO || '');
+      if (/^NBT/i.test(cod) || 'NOD_COD_SED' in p || 'NOD_COD_TBT' in p) return 'postes_bt';
+      if (/^NMT/i.test(cod) || 'NOD_COD_TMT' in p) return 'postes_mt';
+    }
+    return null;
+  }
   async function cargarAutomatico(archivo) {
-    const t = await archivo.text();
+    let t;
+    try { t = await archivo.text(); } catch (err) { return { ok: false, error: 'no se pudo leer el archivo' }; }
+    let d = null;
+    try { d = JSON.parse(t); } catch { return { ok: false, error: 'no es un archivo GeoJSON válido (¿llegó completo?)' }; }
     let c = null;
-    const porNombre = capaPorNombre(archivo.name);
-    if (porNombre) {
-      c = CAPAS.find(k => k.id === porNombre.id);
-      if (!c) { avisar(`${archivo.name}: la capa ${porNombre.nombre} todavía no está habilitada en la herramienta.`, true); return; }
+    const porNombre = capaPorNombre(archivo.name), porCampos = capaPorCampos(d);
+    const id = porCampos || (porNombre && porNombre.id);
+    if (id) {
+      c = CAPAS.find(k => k.id === id);
+      if (!c) return { ok: false, error: 'esa capa todavía no está habilitada en la herramienta' };
     } else {
-      // nombre no reconocido: se decide por el tipo de geometría (líneas → Red MT, puntos → SED)
-      let esPunto = false;
-      try { const d = JSON.parse(t); const f = (d.features || [])[0] || {};
-        esPunto = /Point/i.test((f.geometry && f.geometry.type) || '') || (f.geometry && f.geometry.x != null) || /Point/i.test(d.geometryType || ''); } catch {}
+      // sin pistas: se decide por el tipo de geometría (líneas → Red MT, puntos → SED)
+      const f = (d.features || [])[0] || {};
+      const esPunto = /Point/i.test((f.geometry && f.geometry.type) || '') || (f.geometry && f.geometry.x != null) || /Point/i.test(d.geometryType || '');
       c = CAPAS.find(k => (k.tipo === 'punto') === esPunto) || CAPAS[0];
     }
-    await cargarArchivo(c, { name: archivo.name, text: async () => t });
+    d = null;   // libera memoria: cargarArchivo vuelve a leer el texto
+    const r = await cargarArchivo(c, { name: archivo.name, text: async () => t });
+    return { ...r, capa: c };
   }
   document.addEventListener('drop', ev => {
     const lista = [...(ev.dataTransfer?.files || [])]; if (!lista.length) return;
     ev.preventDefault();
     if (panelCapas.hidden && !esMovil()) abrirPanel('capas');
-    lista.reduce((p, a) => p.then(() => cargarAutomatico(a)), Promise.resolve());
+    lista.reduce((p, a) => p.then(() => cargarAutomatico(a)).then(r => { if (r && !r.ok) avisar(`✘ ${a.name}: ${r.error}`, true, 12000); }), Promise.resolve());
   });
 
   // ---------- Mostrar / ocultar barra UTM ----------
