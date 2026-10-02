@@ -114,6 +114,34 @@
   .elegir-ap button{display:block;width:100%;text-align:left;margin-top:5px;padding:8px 10px;border-radius:7px;cursor:pointer;
     font:600 .9rem "Barlow Semi Condensed",sans-serif;background:#0a6cff;color:#fff;border:0}
   .elegir-ap button small{display:block;font-weight:400;opacity:.9}
+  /* postes nuevos */
+  .pn-botones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 4px}
+  .pn-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:9px;cursor:pointer;
+    font:700 .92rem "Barlow Semi Condensed",sans-serif;color:#fff;border:0}
+  .pn-btn small{font:400 .75rem "Barlow",sans-serif;opacity:.9}
+  .pn-mt{background:#0a6cff}
+  .pn-bt{background:#d62828}
+  .pn-btn[aria-pressed="true"]{outline:3px solid #fff;outline-offset:-3px}
+  .pn-ico{width:26px;height:26px;border-radius:50%;display:block;position:relative}
+  .pn-ico::before,.pn-ico::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:2.6px;border-radius:2px;transform-origin:center}
+  .pn-ico::before{transform:translate(-50%,-50%) rotate(45deg)}
+  .pn-ico::after{transform:translate(-50%,-50%) rotate(-45deg)}
+  .pn-ico-mt{background:#0a6cff;border:2.5px solid #fff}.pn-ico-mt::before,.pn-ico-mt::after{background:#fff}
+  .pn-ico-bt{background:#d62828;border:2.5px solid #000}.pn-ico-bt::before,.pn-ico-bt::after{background:#000}
+  .pn-colocar{position:fixed;z-index:1400;left:50%;transform:translateX(-50%);bottom:calc(130px + env(safe-area-inset-bottom,0px));
+    width:min(420px,calc(100% - 24px));background:var(--panel);color:var(--ink);border:2px solid #0a6cff;border-radius:12px;
+    padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.45);text-align:center}
+  .pn-colocar[hidden]{display:none}
+  .pn-colocar.bt{border-color:#d62828}
+  .pn-colocar b{display:block;font:700 1rem "Barlow Semi Condensed",sans-serif;margin-bottom:8px}
+  .pn-colocar-bot{display:flex;gap:8px}
+  body.colocando #map{cursor:crosshair}
+  .f-fotos-3{grid-template-columns:1fr 1fr 1fr}
+  .f-fotos-3 .f-foto-vacio{font-size:1.3rem}
+  .hoja-cab.bt{background:linear-gradient(100deg,#9e1b1b,#d62828)}
+  .hoja-cab-gris{background:linear-gradient(100deg,#24485f,#1b5e6b)}
+  .r-lista li .num.bt{background:#d62828}
+
   /* mapas sin internet */
   .rc-lista{list-style:none;margin:0;padding:0}
   .rc-lista li{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--borde)}
@@ -480,6 +508,12 @@
     </svg>
   </button>
   <hr>
+  <button id="b-postes" class="ico" aria-pressed="false" aria-label="Postes nuevos" data-tip="Postes nuevos" aria-controls="postes">
+    <!-- poste con signo más -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21V4M5 7h8M6 7l3-3 3 3"/><path d="M17 13v6M14 16h6"/>
+    </svg>
+  </button>
   <button id="b-offline" class="ico" aria-pressed="false" aria-label="Mapas sin internet" data-tip="Mapas sin internet" aria-controls="offline">
     <!-- mapa con tijera de recorte -->
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -533,6 +567,16 @@
     </div>
     <p class="ayuda">Válido para UTM <b>WGS84</b>. Si tus datos están en PSAD56, proyéctalos antes en ArcMap.</p>
   </details>
+</section>
+
+<section id="postes" class="datos" aria-label="Postes nuevos" hidden>
+  <h2 class="tit-datos">Postes nuevos</h2>
+  <p class="ayuda">Elige el tipo y luego toca en el mapa el <b>lugar exacto</b> del poste (o usa tu ubicación GPS).</p>
+  <div class="pn-botones">
+    <button id="pn-mt" class="pn-btn pn-mt"><span class="pn-ico pn-ico-mt"></span>Poste MT nuevo<small id="pn-cuenta-mt">0</small></button>
+    <button id="pn-bt" class="pn-btn pn-bt"><span class="pn-ico pn-ico-bt"></span>Poste BT nuevo<small id="pn-cuenta-bt">0</small></button>
+  </div>
+  <button id="pn-lista-btn" class="tr-reg">Lista de postes nuevos y exportar</button>
 </section>
 
 <section id="offline" class="datos" aria-label="Mapas sin internet" hidden>
@@ -680,6 +724,68 @@
   </div>
 </section>
 
+<!-- ===== Aviso de colocación de poste nuevo ===== -->
+<div id="pn-colocar" class="pn-colocar" hidden>
+  <b id="pn-colocar-txt">Toca el lugar exacto del poste nuevo</b>
+  <div class="pn-colocar-bot">
+    <button id="pn-gps" class="f-btn">📍 Usar mi ubicación GPS</button>
+    <button id="pn-cancelar-col" class="f-btn">Cancelar</button>
+  </div>
+</div>
+
+<!-- ===== Formulario de poste nuevo ===== -->
+<section id="form-poste" class="hoja" aria-label="Poste nuevo" hidden>
+  <div class="hoja-cab" id="fp-cab">
+    <div class="hoja-sed"><small id="fp-tipo-txt">Poste nuevo</small><b id="fp-codigo">—</b><span id="fp-coord"></span></div>
+  </div>
+  <div class="hoja-cuerpo">
+    <div class="f-grupo">
+      <label class="f-tit" for="fp-material">Material</label>
+      <select id="fp-material" class="f-input" style="margin-top:0">
+        <option value="">— Elige el material —</option>
+        <option>CAC</option>
+        <option>Fibra de Vidrio</option>
+        <option>Madera</option>
+        <option value="__otro">Otro (escribir)…</option>
+      </select>
+      <input id="fp-material-otro" class="f-input" placeholder="Escribe el material" hidden>
+    </div>
+    <div class="f-grupo">
+      <label class="f-tit">Fotos</label>
+      <div class="f-fotos f-fotos-3">
+        <label class="f-foto" data-foto="pan"><input type="file" accept="image/*" capture="environment" hidden>
+          <span class="f-foto-vacio">📷<b>Panorámica</b><small>Tocar</small></span><img alt="Foto panorámica" hidden></label>
+        <label class="f-foto" data-foto="arm1"><input type="file" accept="image/*" capture="environment" hidden>
+          <span class="f-foto-vacio">📷<b>Armado 1</b><small>Tocar</small></span><img alt="Foto armado 1" hidden></label>
+        <label class="f-foto" data-foto="arm2"><input type="file" accept="image/*" capture="environment" hidden>
+          <span class="f-foto-vacio">📷<b>Armado 2</b><small>Tocar</small></span><img alt="Foto armado 2" hidden></label>
+      </div>
+    </div>
+    <div class="f-grupo">
+      <label class="f-tit" for="fp-obs">Observaciones (opcional)</label>
+      <textarea id="fp-obs" class="f-input" rows="2"></textarea>
+    </div>
+  </div>
+  <div class="hoja-pie">
+    <button id="fp-eliminar" class="f-btn f-btn-rojo" hidden>Eliminar</button>
+    <button id="fp-cancelar" class="f-btn">Cancelar</button>
+    <button id="fp-guardar" class="f-btn f-btn-ok">Guardar</button>
+  </div>
+</section>
+
+<!-- ===== Lista de postes nuevos y exportación ===== -->
+<section id="lista-postes" class="hoja" aria-label="Postes nuevos registrados" hidden>
+  <div class="hoja-cab hoja-cab-gris">
+    <div class="hoja-sed"><small>Postes nuevos</small><b id="lp-tit">—</b></div>
+    <button id="lp-cerrar" class="tr-btn" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <ul id="lp-lista" class="r-lista"></ul>
+  <div class="hoja-pie hoja-pie-col">
+    <button id="lp-exp-zip" class="f-btn f-btn-ok">Descargar Excel + ArcMap (shapefile) + fotos (ZIP)</button>
+    <button id="lp-compartir" class="f-btn">Compartir por WhatsApp…</button>
+  </div>
+</section>
+
 <!-- ===== Lista de registros y exportación ===== -->
 <section id="registros" class="hoja" aria-label="Registros de inspección" hidden>
   <div class="hoja-cab">
@@ -723,7 +829,7 @@
   // en el celular, cierra el panel abierto para dejar ver el mapa
   function cerrarPanelesMovil() {
     if (!esMovil()) return;
-    ['offline', 'codigo', 'buscar', 'ir', 'capas'].forEach(id => { const el = $(id); if (el && !el.hidden) abrirPanel(id); });
+    ['postes', 'offline', 'codigo', 'buscar', 'ir', 'capas'].forEach(id => { const el = $(id); if (el && !el.hidden) abrirPanel(id); });
   }
 
   // ---------- Mapas base ----------
@@ -988,7 +1094,7 @@
   // Motor principal: Photon (komoot). Respaldo: Nominatim (OSM).
   const panelBus = $('buscar'), bBus = $('b-buscar');
   function abrirPanel(cual) { // solo un panel grande abierto a la vez
-    const paneles = { offline: ['offline', 'b-offline'], codigo: ['codigo', 'b-codigo'], buscar: ['buscar', 'b-buscar'], ir: ['ir', 'b-ir'], capas: ['capas', 'b-capas'] };
+    const paneles = { postes: ['postes', 'b-postes'], offline: ['offline', 'b-offline'], codigo: ['codigo', 'b-codigo'], buscar: ['buscar', 'b-buscar'], ir: ['ir', 'b-ir'], capas: ['capas', 'b-capas'] };
     const abrir = $(paneles[cual][0]).hidden;
     Object.entries(paneles).forEach(([k, [pid, bid]]) => {
       const on = k === cual && abrir;
@@ -1687,6 +1793,7 @@
         : L.circleMarker(ll, c.estilo === 'circulo' ? estiloPunto(c, ft)
             : { renderer: lienzo, radius: 4, color: c.color, weight: 1, fillOpacity: 0.9 }),
       onEachFeature: (ft, lyr) => lyr.on('click', ev => {
+        if (tocarParaPoste(ev.latlng)) return;
         if (c.id === 'sed') seleccionarSED(ft);
         if (trabajo && c.id === 'ap' && perteneceSED(c, ft)) { elegirAPdePoste(apsMismoPoste(ft), ev.latlng); return; }
         if (trabajo && c.id === 'postes_bt') { const aps = apsEnPoste(ft, ev.latlng); if (aps.length) { elegirAPdePoste(aps, ev.latlng); return; } }
@@ -1904,6 +2011,7 @@
   }
   // al tocar un AP (su X o su poste): formulario si es de la SED de trabajo; si no, sus datos
   function tocarAP(c, ft, ll) {
+    if (tocarParaPoste(ll)) return;
     if (trabajo && perteneceSED(c, ft)) { abrirFormularioAP(ft); return; }
     L.popup({ maxWidth: 320 }).setLatLng(ll).setContent(tablaAtributos(arreglarTexto(c.titulo ? c.titulo(ft.properties || {}) : c.corto), ft.properties, c)).openOn(map);
   }
@@ -2302,6 +2410,255 @@
     } catch (err) { if (err.name !== 'AbortError') avisar('No se pudo compartir: ' + err.message, true); }
   };
 
+  // =================== POSTES NUEVOS (levantamiento en campo) ===================
+  // MT: círculo azul con borde blanco y X blanca · BT: círculo rojo con borde negro y X negra.
+  // Se guardan en el celular y se exportan a Excel + shapefile (para ArcMap) + fotos.
+  const BDP = {
+    abrir() { return new Promise((ok, mal) => { const r = indexedDB.open('herramientaAP_postes', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('postes'); r.result.createObjectStore('fotos'); };
+      r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); },
+    async op(a, modo, fn) { const db = await this.abrir(); return new Promise((ok, mal) => {
+      const t = db.transaction(a, modo); const r = fn(t.objectStore(a)); t.oncomplete = () => ok(r && r.result); t.onerror = () => mal(t.error); }); },
+    poner(a, k, v) { return this.op(a, 'readwrite', s => s.put(v, k)); },
+    leer(a, k) { return this.op(a, 'readonly', s => s.get(k)); },
+    borrar(a, k) { return this.op(a, 'readwrite', s => s.delete(k)); },
+    async todos(a) { const db = await this.abrir(); return new Promise((ok, mal) => {
+      const res = [], r = db.transaction(a).objectStore(a).openCursor();
+      r.onsuccess = () => { const c = r.result; if (c) { res.push(c.value); c.continue(); } else ok(res); }; r.onerror = () => mal(r.error); }); }
+  };
+  const postesNuevos = new Map();
+  const capaPostesNuevos = L.layerGroup().addTo(map);
+  const ESTILO_PN = { MT: { fondo: '#0a6cff', borde: '#ffffff', x: '#ffffff' }, BT: { fondo: '#d62828', borde: '#000000', x: '#000000' } };
+  const iconoPosteNuevo = tipo => { const e = ESTILO_PN[tipo]; return L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14],
+    html: `<svg viewBox="0 0 28 28" width="28" height="28" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))">
+      <circle cx="14" cy="14" r="11.5" fill="${e.fondo}" stroke="${e.borde}" stroke-width="3"/>
+      <path d="M9 9L19 19M19 9L9 19" stroke="${e.x}" stroke-width="3" stroke-linecap="round"/></svg>` }); };
+  function dibujarPostesNuevos() {
+    capaPostesNuevos.clearLayers();
+    postesNuevos.forEach(p => L.marker([p.lat, p.lon], { icon: iconoPosteNuevo(p.tipo), zIndexOffset: 1700, title: p.codigo })
+      .on('click', ev => { L.DomEvent.stop(ev); abrirFormPoste(p.tipo, L.latLng(p.lat, p.lon), p); }).addTo(capaPostesNuevos));
+    ['MT', 'BT'].forEach(t => $('pn-cuenta-' + t.toLowerCase()).textContent =
+      `${[...postesNuevos.values()].filter(p => p.tipo === t).length} registrado(s)`);
+  }
+  BDP.todos('postes').then(l => { l.forEach(p => postesNuevos.set(p.codigo, p)); dibujarPostesNuevos(); }).catch(() => {});
+
+  // ---- modo colocación: el siguiente toque en el mapa marca el poste ----
+  let colocando = null;   // 'MT' | 'BT' | null
+  function iniciarColocacion(tipo) {
+    colocando = tipo; document.body.classList.add('colocando');
+    $('pn-colocar').hidden = false; $('pn-colocar').classList.toggle('bt', tipo === 'BT');
+    $('pn-colocar-txt').textContent = `Toca en el mapa el lugar exacto del poste ${tipo} nuevo`;
+    $('pn-mt').setAttribute('aria-pressed', tipo === 'MT'); $('pn-bt').setAttribute('aria-pressed', tipo === 'BT');
+    cerrarPanelesMovil();
+  }
+  function terminarColocacion() {
+    colocando = null; document.body.classList.remove('colocando'); $('pn-colocar').hidden = true;
+    $('pn-mt').setAttribute('aria-pressed', false); $('pn-bt').setAttribute('aria-pressed', false);
+  }
+  // devuelve true si el toque se usó para colocar un poste nuevo (así no se abre otra cosa)
+  function tocarParaPoste(ll) {
+    if (!colocando) return false;
+    const tipo = colocando; terminarColocacion(); abrirFormPoste(tipo, ll, null); return true;
+  }
+  map.on('click', ev => tocarParaPoste(ev.latlng));
+  $('pn-mt').onclick = () => iniciarColocacion('MT');
+  $('pn-bt').onclick = () => iniciarColocacion('BT');
+  $('pn-cancelar-col').onclick = terminarColocacion;
+  $('pn-gps').onclick = () => {
+    if (!ultima) { avisar('Aún no hay ubicación GPS. Activa el GPS y espera unos segundos.', true); return; }
+    tocarParaPoste(L.latLng(ultima.lat, ultima.lon));
+  };
+  $('b-postes').onclick = () => abrirPanel('postes');
+
+  // ---- formulario ----
+  let fpActual = null;   // { tipo, ll, previo, fotos: {pan, arm1, arm2} }
+  const marcaPosteTemp = L.layerGroup().addTo(map);
+  function mostrarFotoPoste(cual, blob) {
+    const caja = $('form-poste').querySelector(`.f-foto[data-foto="${cual}"]`), img = caja.querySelector('img');
+    if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+    if (blob) { const u = URL.createObjectURL(blob); img.src = u; img.dataset.url = u; img.hidden = false; caja.classList.add('lista'); }
+    else { img.hidden = true; img.removeAttribute('src'); caja.classList.remove('lista'); }
+    caja.querySelector('.f-foto-vacio').style.visibility = blob ? 'hidden' : 'visible';
+  }
+  $('form-poste').querySelectorAll('.f-foto').forEach(caja => {
+    caja.querySelector('input').onchange = async ev => {
+      const a = ev.target.files[0]; ev.target.value = ''; if (!a || !fpActual) return;
+      try { avisar('Procesando foto…'); fpActual.fotos[caja.dataset.foto] = await reducirFoto(a); mostrarFotoPoste(caja.dataset.foto, fpActual.fotos[caja.dataset.foto]); avisar('Foto lista'); }
+      catch { avisar('No se pudo leer la foto. Intenta de nuevo.', true); }
+    };
+  });
+  $('fp-material').onchange = () => { $('fp-material-otro').hidden = $('fp-material').value !== '__otro'; if (!$('fp-material-otro').hidden) $('fp-material-otro').focus(); };
+
+  function siguienteCodigo(tipo) {
+    let max = 0; postesNuevos.forEach(p => { if (p.tipo === tipo) max = Math.max(max, +String(p.codigo).split('-').pop() || 0); });
+    return `PN-${tipo}-${String(max + 1).padStart(4, '0')}`;
+  }
+  async function abrirFormPoste(tipo, ll, previo) {
+    marcaPosteTemp.clearLayers();
+    if (!previo) L.marker(ll, { icon: iconoPosteNuevo(tipo), interactive: false, zIndexOffset: 1800 }).addTo(marcaPosteTemp);
+    fpActual = { tipo, ll, previo, codigo: previo ? previo.codigo : siguienteCodigo(tipo), fotos: { pan: null, arm1: null, arm2: null } };
+    $('fp-cab').classList.toggle('bt', tipo === 'BT');
+    $('fp-tipo-txt').textContent = `Poste ${tipo} nuevo${previo ? ' · ✏️ corrigiendo' : ''}`;
+    $('fp-codigo').textContent = fpActual.codigo;
+    const u = aUTM(ll.lat, ll.lng);
+    $('fp-coord').textContent = `${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)} · UTM ${u.zona}${u.hemi} ${u.x.toFixed(1)} E ${u.y.toFixed(1)} N`;
+    const mat = previo ? previo.material : '', enLista = ['CAC', 'Fibra de Vidrio', 'Madera'].includes(mat);
+    $('fp-material').value = !mat ? '' : enLista ? mat : '__otro';
+    $('fp-material-otro').hidden = !mat || enLista; $('fp-material-otro').value = mat && !enLista ? mat : '';
+    $('fp-obs').value = previo ? (previo.obs || '') : '';
+    ['pan', 'arm1', 'arm2'].forEach(k => mostrarFotoPoste(k, null));
+    if (previo) for (const k of ['pan', 'arm1', 'arm2']) {
+      try { const b = await BDP.leer('fotos', previo.codigo + '|' + k); if (b) { fpActual.fotos[k] = b; mostrarFotoPoste(k, b); } } catch {}
+    }
+    $('fp-eliminar').hidden = !previo;
+    map.closePopup(); cerrarHojas(); $('fondo-hoja').hidden = false; $('form-poste').hidden = false;
+  }
+  function cerrarFormPoste() { $('form-poste').hidden = true; $('fondo-hoja').hidden = true; marcaPosteTemp.clearLayers(); fpActual = null; }
+  async function guardarPoste() {
+    if (!fpActual) return;
+    const material = $('fp-material').value === '__otro' ? $('fp-material-otro').value.trim() : $('fp-material').value;
+    if (!material) return avisar('Indica el material del poste.', true);
+    const faltan = ['pan', 'arm1', 'arm2'].filter(k => !fpActual.fotos[k]).length;
+    if (faltan && !confirm(`Faltan ${faltan} foto(s).\n¿Guardar igual?`)) return;
+    const ahora = new Date(), pr = fpActual.previo || {};
+    const reg = { codigo: fpActual.codigo, tipo: fpActual.tipo, lat: fpActual.ll.lat, lon: fpActual.ll.lng, material,
+      obs: $('fp-obs').value.trim(), sed: pr.sed || (trabajo ? (trabajo.etq || trabajo.cod) : ''),
+      fotos: { pan: !!fpActual.fotos.pan, arm1: !!fpActual.fotos.arm1, arm2: !!fpActual.fotos.arm2 },
+      creado: pr.creado || ahora.toISOString(), modificado: ahora.toISOString(),
+      gpsPrec: ultima && ultima.acc != null ? ultima.acc : null };
+    try {
+      await BDP.poner('postes', reg.codigo, reg);
+      for (const k of ['pan', 'arm1', 'arm2']) {
+        if (fpActual.fotos[k]) await BDP.poner('fotos', reg.codigo + '|' + k, fpActual.fotos[k]); else await BDP.borrar('fotos', reg.codigo + '|' + k);
+      }
+    } catch (err) { return avisar('No se pudo guardar: ' + err.message, true); }
+    postesNuevos.set(reg.codigo, reg); dibujarPostesNuevos(); cerrarFormPoste();
+    avisar(`Guardado ✔ ${reg.codigo} · ${material}`);
+  }
+  async function eliminarPoste() {
+    if (!fpActual || !fpActual.previo) return;
+    if (!confirm(`¿Eliminar el poste nuevo ${fpActual.codigo}?\nSe borrarán también sus fotos.`)) return;
+    const cod = fpActual.codigo;
+    await BDP.borrar('postes', cod); for (const k of ['pan', 'arm1', 'arm2']) await BDP.borrar('fotos', cod + '|' + k);
+    postesNuevos.delete(cod); dibujarPostesNuevos(); cerrarFormPoste(); avisar('Poste nuevo eliminado');
+  }
+  $('fp-guardar').onclick = guardarPoste;
+  $('fp-cancelar').onclick = cerrarFormPoste;
+  $('fp-eliminar').onclick = eliminarPoste;
+
+  // ---- lista ----
+  function pintarListaPostes() {
+    const lista = [...postesNuevos.values()].sort((a, b) => a.creado.localeCompare(b.creado));
+    const nMT = lista.filter(p => p.tipo === 'MT').length;
+    $('lp-tit').textContent = `${lista.length} registrado(s) · MT ${nMT} · BT ${lista.length - nMT}`;
+    $('lp-lista').innerHTML = lista.length ? lista.map((p, i) => `<li data-c="${esc(p.codigo)}">
+        <span class="num${p.tipo === 'BT' ? ' bt' : ''}">${i + 1}</span>
+        <span class="txt"><b>${esc(p.codigo)}</b><small>${esc(p.material)}${p.sed ? ' · SED ' + esc(p.sed) : ''}</small><small>${fechaTxt(p.modificado)}</small></span>
+        <span class="fot">${Object.values(p.fotos).filter(Boolean).length}/3 📷</span></li>`).join('')
+      : '<li class="r-vacio">Aún no hay postes nuevos.</li>';
+    $('lp-lista').querySelectorAll('li[data-c]').forEach(li => li.onclick = () => {
+      const p = postesNuevos.get(li.dataset.c); $('lista-postes').hidden = true;
+      map.setView([p.lat, p.lon], Math.max(map.getZoom(), 17)); abrirFormPoste(p.tipo, L.latLng(p.lat, p.lon), p);
+    });
+  }
+  $('pn-lista-btn').onclick = () => { pintarListaPostes(); $('fondo-hoja').hidden = false; $('lista-postes').hidden = false; };
+  $('lp-cerrar').onclick = () => { $('lista-postes').hidden = true; $('fondo-hoja').hidden = true; };
+
+  // ---- shapefile de puntos (WGS84) para ArcMap: .shp .shx .dbf .prj .cpg ----
+  function crearShapefile(registros, campos) {
+    const n = registros.length;
+    const xs = registros.map(r => r.lon), ys = registros.map(r => r.lat);
+    const bbox = n ? [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] : [0, 0, 0, 0];
+    const cabecera = (dv, largo) => { dv.setInt32(0, 9994); dv.setInt32(24, largo / 2); dv.setInt32(28, 1000, true); dv.setInt32(32, 1, true);
+      bbox.forEach((v, i) => dv.setFloat64(36 + i * 8, v, true)); };
+    const shp = new ArrayBuffer(100 + n * 28), dvs = new DataView(shp); cabecera(dvs, shp.byteLength);
+    const shx = new ArrayBuffer(100 + n * 8), dvx = new DataView(shx); cabecera(dvx, shx.byteLength);
+    registros.forEach((r, i) => {
+      const off = 100 + i * 28;
+      dvs.setInt32(off, i + 1); dvs.setInt32(off + 4, 10); dvs.setInt32(off + 8, 1, true);
+      dvs.setFloat64(off + 12, r.lon, true); dvs.setFloat64(off + 20, r.lat, true);
+      dvx.setInt32(100 + i * 8, off / 2); dvx.setInt32(100 + i * 8 + 4, 10);
+    });
+    // DBF (texto en UTF-8, declarado en el .cpg)
+    const enc = new TextEncoder();
+    const largoReg = 1 + campos.reduce((a, c) => a + c.largo, 0), largoCab = 32 + campos.length * 32 + 1;
+    const dbf = new Uint8Array(largoCab + n * largoReg + 1), dvd = new DataView(dbf.buffer), hoy = new Date();
+    dbf[0] = 3; dbf[1] = hoy.getFullYear() - 1900; dbf[2] = hoy.getMonth() + 1; dbf[3] = hoy.getDate();
+    dvd.setUint32(4, n, true); dvd.setUint16(8, largoCab, true); dvd.setUint16(10, largoReg, true);
+    campos.forEach((c, i) => { const o = 32 + i * 32; dbf.set(enc.encode(c.nombre.slice(0, 10)), o);
+      dbf[o + 11] = c.tipo.charCodeAt(0); dbf[o + 16] = c.largo; dbf[o + 17] = c.dec || 0; });
+    dbf[largoCab - 1] = 0x0d;
+    registros.forEach((r, i) => {
+      let o = largoCab + i * largoReg; dbf[o++] = 0x20;
+      campos.forEach(c => {
+        let v = c.valor(r); v = v == null ? '' : c.tipo === 'N' ? Number(v).toFixed(c.dec || 0) : String(v);
+        let b = enc.encode(v); if (b.length > c.largo) { while (enc.encode(v).length > c.largo) v = v.slice(0, -1); b = enc.encode(v); }
+        const relleno = new Uint8Array(c.largo).fill(0x20);
+        if (c.tipo === 'N') relleno.set(b, c.largo - b.length); else relleno.set(b, 0);
+        dbf.set(relleno, o); o += c.largo;
+      });
+    });
+    dbf[dbf.length - 1] = 0x1a;
+    const prj = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+    return { shp, shx, dbf, prj, cpg: 'UTF-8' };
+  }
+  const fechaLocal = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const fotoPN = (p, k) => `${p.codigo}_${{ pan: 'panoramica', arm1: 'armado1', arm2: 'armado2' }[k]}.jpg`;
+  async function generarPaquetePostes() {
+    const lista = [...postesNuevos.values()].sort((a, b) => a.creado.localeCompare(b.creado));
+    if (!lista.length) { avisar('No hay postes nuevos para exportar.', true); return null; }
+    avisar('Preparando archivo…');
+    await cargarScript(URL_XLSX); await cargarScript(URL_JSZIP);
+    const hoy = fechaLocal(new Date()), base = `Postes_nuevos_${hoy}`;
+    // Excel
+    const filas = lista.map((p, i) => { const d = new Date(p.modificado), u = aUTM(p.lat, p.lon);
+      return { 'N°': i + 1, 'Código': p.codigo, 'Tipo': p.tipo, 'Material': p.material,
+        'Fecha': d.toLocaleDateString('es-PE'), 'Hora': d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        'Latitud': +p.lat.toFixed(7), 'Longitud': +p.lon.toFixed(7), 'Zona UTM': `${u.zona}${u.hemi}`,
+        'UTM X (m)': +u.x.toFixed(2), 'UTM Y (m)': +u.y.toFixed(2), 'SED de trabajo': p.sed || '', 'Observaciones': p.obs || '',
+        'Foto panorámica': p.fotos.pan ? fotoPN(p, 'pan') : '', 'Foto armado 1': p.fotos.arm1 ? fotoPN(p, 'arm1') : '',
+        'Foto armado 2': p.fotos.arm2 ? fotoPN(p, 'arm2') : '' }; });
+    const ws = XLSX.utils.json_to_sheet(filas), cols = Object.keys(filas[0]);
+    ws['!cols'] = cols.map(k => ({ wch: Math.max(10, k.length + 2) }));
+    filas.forEach((f, i) => ['Foto panorámica', 'Foto armado 1', 'Foto armado 2'].forEach(k => {
+      if (!f[k]) return; const ref = XLSX.utils.encode_cell({ r: i + 1, c: cols.indexOf(k) }); if (ws[ref]) ws[ref].l = { Target: 'fotos/' + f[k] }; }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Postes nuevos');
+    const zip = new JSZip();
+    zip.file(base + '.xlsx', new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' })));
+    // shapefile para ArcMap (un solo archivo con el campo TIPO: MT / BT)
+    const campos = [
+      { nombre: 'CODIGO', tipo: 'C', largo: 16, valor: p => p.codigo }, { nombre: 'TIPO', tipo: 'C', largo: 2, valor: p => p.tipo },
+      { nombre: 'MATERIAL', tipo: 'C', largo: 40, valor: p => p.material },
+      { nombre: 'FECHA', tipo: 'C', largo: 10, valor: p => fechaLocal(new Date(p.modificado)) },
+      { nombre: 'HORA', tipo: 'C', largo: 5, valor: p => new Date(p.modificado).toTimeString().slice(0, 5) },
+      { nombre: 'LATITUD', tipo: 'N', largo: 14, dec: 7, valor: p => p.lat }, { nombre: 'LONGITUD', tipo: 'N', largo: 14, dec: 7, valor: p => p.lon },
+      { nombre: 'UTM_ZONA', tipo: 'C', largo: 4, valor: p => { const u = aUTM(p.lat, p.lon); return u.zona + u.hemi; } },
+      { nombre: 'UTM_X', tipo: 'N', largo: 12, dec: 2, valor: p => aUTM(p.lat, p.lon).x },
+      { nombre: 'UTM_Y', tipo: 'N', largo: 13, dec: 2, valor: p => aUTM(p.lat, p.lon).y },
+      { nombre: 'SED', tipo: 'C', largo: 16, valor: p => p.sed || '' }, { nombre: 'OBS', tipo: 'C', largo: 200, valor: p => p.obs || '' },
+      { nombre: 'FOTO_PAN', tipo: 'C', largo: 60, valor: p => p.fotos.pan ? 'fotos/' + fotoPN(p, 'pan') : '' },
+      { nombre: 'FOTO_ARM1', tipo: 'C', largo: 60, valor: p => p.fotos.arm1 ? 'fotos/' + fotoPN(p, 'arm1') : '' },
+      { nombre: 'FOTO_ARM2', tipo: 'C', largo: 60, valor: p => p.fotos.arm2 ? 'fotos/' + fotoPN(p, 'arm2') : '' } ];
+    const shp = crearShapefile(lista, campos), nom = 'Postes_nuevos';
+    zip.file(nom + '.shp', shp.shp); zip.file(nom + '.shx', shp.shx); zip.file(nom + '.dbf', shp.dbf);
+    zip.file(nom + '.prj', shp.prj); zip.file(nom + '.cpg', shp.cpg);
+    for (const p of lista) for (const k of ['pan', 'arm1', 'arm2']) {
+      const f = await BDP.leer('fotos', p.codigo + '|' + k); if (f) zip.file('fotos/' + fotoPN(p, k), f);
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    return new File([blob], base + '.zip', { type: 'application/zip' });
+  }
+  $('lp-exp-zip').onclick = async () => {
+    try { const f = await generarPaquetePostes(); if (!f) return; descargar(f, f.name); avisar(`Descargado: ${f.name} (carpeta Descargas)`); }
+    catch (err) { avisar('No se pudo exportar: ' + err.message + '. Abre la app una vez con internet y vuelve a intentar.', true); }
+  };
+  $('lp-compartir').onclick = async () => {
+    try { const f = await generarPaquetePostes(); if (!f) return;
+      if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: f.name });
+      else { descargar(f, f.name); avisar('Tu celular no permite compartir directo; se descargó el archivo.'); } }
+    catch (err) { if (err.name !== 'AbortError') avisar('No se pudo compartir: ' + err.message, true); }
+  };
+
   // =================== MAPAS SIN INTERNET (recortes de la vista) ===================
   // Guarda en el celular las teselas del mapa base de la zona visible (varios niveles de zoom).
   // Sin señal, la app (su service worker) entrega esas teselas guardadas: el mapa se ve y se trabaja igual.
@@ -2661,7 +3018,7 @@
 
   function alUbicar(pos) {
     const { latitude: lat, longitude: lon, accuracy, altitude } = pos.coords;
-    ultima = { lat, lon };
+    ultima = { lat, lon, acc: accuracy };
     const ll = [lat, lon];
     if (!marcador) {
       circulo = L.circle(ll, { radius: accuracy, color: '#2d8cff', weight: 1, fillOpacity: 0.12 }).addTo(map);
