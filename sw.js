@@ -1,5 +1,5 @@
 // Service worker de la herramienta AP: instalación como app, copia sin señal y recepción de archivos compartidos
-const CACHE = 'ap-v18';
+const CACHE = 'ap-v19';
 const BASE = ['./', './index.html', './manifest.webmanifest', './icono_AP_192.png', './icono_AP_512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
@@ -7,7 +7,7 @@ const BASE = ['./', './index.html', './manifest.webmanifest', './icono_AP_192.pn
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(
-  k.filter(x => x !== CACHE && x !== 'ap-compartidos').map(x => caches.delete(x))))); self.clients.claim(); });
+  k.filter(x => x !== CACHE && x !== 'ap-compartidos' && x !== 'ap-teselas').map(x => caches.delete(x))))); self.clients.claim(); });
 
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
@@ -27,6 +27,11 @@ self.addEventListener('fetch', e => {
       } catch (err) {}
       return Response.redirect('./?compartido=1', 303);
     })());
+    return;
+  }
+  // Teselas del mapa base: si están en un recorte guardado se entregan desde el celular (funciona sin señal)
+  if (e.request.method === 'GET' && /(\.tile\.opentopomap\.org|\.tile\.openstreetmap\.fr|tile\.openstreetmap\.org|basemaps\.cartocdn\.com)$/.test(u.hostname)) {
+    e.respondWith(caches.open('ap-teselas').then(c => c.match(e.request.url)).then(r => r || fetch(e.request)).catch(() => fetch(e.request)));
     return;
   }
   const propio = u.origin === location.origin || u.hostname === 'cdnjs.cloudflare.com';

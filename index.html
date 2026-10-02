@@ -536,9 +536,9 @@
 
 <section id="offline" class="datos" aria-label="Mapas sin internet" hidden>
   <h2 class="tit-datos">Mapas sin internet</h2>
-  <p class="ayuda">Con internet, encuadra la zona donde trabajarás y guarda un <b>recorte</b>. Luego podrás abrirlo en campo aunque no haya señal.</p>
+  <p class="ayuda">Con internet, encuadra la zona donde trabajarás y guarda un <b>recorte</b>: el mapa de esa zona queda guardado en el celular. En campo, sin señal, se verá igual en esa zona.</p>
   <div class="campo"><label for="rc-nombre">Nombre</label><input id="rc-nombre" class="f-input" style="margin:0" placeholder="Ej.: SE05330 Tambopata"></div>
-  <label class="chk" style="margin:4px 0 8px"><input type="checkbox" id="rc-detalle" checked> Con más detalle al acercar (tarda un poco más)</label>
+  <label class="chk" style="margin:4px 0 8px"><input type="checkbox" id="rc-detalle" checked> Guardar también un nivel más de acercamiento (tarda un poco más)</label>
   <button id="rc-recortar" class="b-marcar" style="width:100%;font:600 .95rem 'Barlow Semi Condensed',sans-serif;border-radius:6px;padding:9px;cursor:pointer">✂ Recortar esta vista</button>
   <p class="ayuda" id="rc-estado" style="margin-top:6px"></p>
   <h3 class="subt" style="margin-top:8px">Recortes guardados</h3>
@@ -731,14 +731,22 @@
     attribution: 'Mapa: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA) | Datos: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   });
   // Servidor OSM Francia (acepta archivos abiertos localmente); respaldo automático: CARTO Voyager
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+  // Publicada (https): teselas oficiales de OpenStreetMap, que permiten guardarse para usar sin internet.
+  // Abierta como archivo: OSM Francia (el servidor oficial bloquea los archivos locales).
+  const enWeb = location.protocol.startsWith('http');
+  const osm = L.tileLayer(enWeb ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
     maxZoom: 19, subdomains: 'abc',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Teselas: OSM France'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' + (enWeb ? '' : ' | Teselas: OSM France')
   });
-  let fallosOsm = 0, osmRespaldo = false;
+  // si el servidor falla (con internet), se pasa al siguiente: OSM oficial → OSM Francia → CARTO
+  let fallosOsm = 0, pasoOsm = enWeb ? 0 : 1;
   osm.on('tileerror', () => {
-    if (!osmRespaldo && ++fallosOsm >= 3) {
-      osmRespaldo = true;
+    if (!navigator.onLine || ++fallosOsm < 3) return;      // sin internet no se cambia: se usan los recortes guardados
+    fallosOsm = 0; pasoOsm++;
+    if (pasoOsm === 1) {
+      osm.options.attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Teselas: OSM France';
+      osm.setUrl('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png');
+    } else if (pasoOsm === 2) {
       osm.options.subdomains = 'abcd';
       osm.options.attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | &copy; <a href="https://carto.com/">CARTO</a>';
       osm.setUrl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png');
@@ -2292,8 +2300,8 @@
   };
 
   // =================== MAPAS SIN INTERNET (recortes de la vista) ===================
-  // Guarda una imagen del mapa base de la zona visible (y opcionalmente con un nivel más de detalle),
-  // ubicada exactamente en sus coordenadas. Se muestra debajo de las capas eléctricas aunque no haya señal.
+  // Guarda en el celular las teselas del mapa base de la zona visible (varios niveles de zoom).
+  // Sin señal, la app (su service worker) entrega esas teselas guardadas: el mapa se ve y se trabaja igual.
   const BDM = {
     abrir() { return new Promise((ok, mal) => { const r = indexedDB.open('herramientaAP_mapas', 1);
       r.onupgradeneeded = () => r.result.createObjectStore('recortes'); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); },
@@ -2305,86 +2313,115 @@
       const res = [], r = db.transaction('recortes').objectStore('recortes').openCursor();
       r.onsuccess = () => { const c = r.result; if (c) { res.push(c.value); c.continue(); } else ok(res); }; r.onerror = () => mal(r.error); }); }
   };
-  map.createPane('recortes'); map.getPane('recortes').style.zIndex = 250;   // encima del mapa base, debajo de las capas
-  const recortes = new Map();      // id → { datos, capa }
+  const CACHE_TESELAS = 'ap-teselas';
+  const recortes = new Map();               // id → datos
+  const capaZonas = L.layerGroup().addTo(map);   // contorno de las zonas guardadas
   const tamTxt = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB';
 
-  async function capturarZoom(base, limites, z) {
-    const nw = map.project(limites.getNorthWest(), z).floor(), se = map.project(limites.getSouthEast(), z).ceil();
-    const t0 = nw.divideBy(256).floor(), t1 = se.subtract([1, 1]).divideBy(256).floor();
-    const n = (t1.x - t0.x + 1) * (t1.y - t0.y + 1);
-    if (n > 400) throw new Error('la zona es demasiado grande; acércate un poco más');
-    const cv = document.createElement('canvas'); cv.width = se.x - nw.x; cv.height = se.y - nw.y;
-    const ctx = cv.getContext('2d'); ctx.fillStyle = '#ddd'; ctx.fillRect(0, 0, cv.width, cv.height);
-    let hechos = 0, fallas = 0; const tareas = [];
-    for (let x = t0.x; x <= t1.x; x++) for (let y = t0.y; y <= t1.y; y++) {
-      const url = base.getTileUrl(Object.assign(L.point(x, y), { z }));
-      tareas.push(fetch(url, { mode: 'cors' }).then(r => { if (!r.ok) throw 0; return r.blob(); }).then(createImageBitmap)
-        .then(img => ctx.drawImage(img, x * 256 - nw.x, y * 256 - nw.y, 256, 256)).catch(() => fallas++)
-        .finally(() => { hechos++; $('rc-estado').textContent = `Guardando teselas… ${hechos} de ${n}`; }));
-    }
-    await Promise.all(tareas);
-    const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.85));
-    return { blob, fallas, n, bounds: [[map.unproject(se, z).lat, map.unproject(nw, z).lng], [map.unproject(nw, z).lat, map.unproject(se, z).lng]] };
+  // dirección de una tesela exactamente igual a la que pide el mapa (mismo subdominio)
+  function urlTesela(capa, x, y, z) {
+    const sub = capa.options.subdomains || 'abc';
+    const s = typeof sub === 'string' ? sub[Math.abs(x + y) % sub.length] : sub[Math.abs(x + y) % sub.length];
+    return L.Util.template(capa._url, L.extend({ s, x, y, z, r: '' }, capa.options));
+  }
+  function teselasDeZona(capa, limites, zooms) {
+    const urls = [];
+    zooms.forEach(z => {
+      const a = map.project(limites.getNorthWest(), z).divideBy(256).floor();
+      const b = map.project(limites.getSouthEast(), z).divideBy(256).floor();
+      for (let x = a.x; x <= b.x; x++) for (let y = a.y; y <= b.y; y++) urls.push(urlTesela(capa, x, y, z));
+    });
+    return urls;
   }
   async function recortarVista() {
     const nombre = $('rc-nombre').value.trim() || `Recorte ${recortes.size + 1}`;
     if (!navigator.onLine) { avisar('Para recortar se necesita internet.', true); return; }
-    const base = map.hasLayer(topo) ? topo : osm, limites = map.getBounds(), z = map.getZoom();
-    const zMax = base.options.maxZoom || 18;
+    if (!('caches' in window) || !navigator.serviceWorker || !navigator.serviceWorker.controller)
+      { avisar('Los recortes funcionan en la app instalada (abre AP Supervisión desde su ícono).', true); return; }
+    let capa = map.hasLayer(topo) ? topo : osm;
+    const limites = map.getBounds(), z = map.getZoom();
     $('rc-recortar').disabled = true;
+    // ¿el servidor de este mapa permite guardar sus teselas? (se prueba con la tesela del centro)
+    const permite = async c => { const t = map.project(map.getCenter(), z).divideBy(256).floor();
+      try { const r = await fetch(urlTesela(c, t.x, t.y, z), { mode: 'cors' }); return r.ok; } catch { return false; } };
+    let cambio = '';
+    if (!(await permite(capa))) {
+      if (capa === topo && await permite(osm)) { capa = osm; usarCapa(osm); cambio = 'OpenTopoMap no permite guardar su mapa; se guardó con OpenStreetMap. '; }
+      else { $('rc-recortar').disabled = false; avisar('Este mapa base no permite guardarse para usar sin internet. Prueba con el otro mapa base.', true); return; }
+    }
+    const zMax = capa.options.maxZoom || 18;
+    const zooms = [z - 1, z, z + 1].filter(n => n >= 3 && n <= zMax && (n <= z || $('rc-detalle').checked));
+    const urls = teselasDeZona(capa, limites, zooms);
+    if (urls.length > 600) { $('rc-recortar').disabled = false; avisar('La zona es muy grande. Acércate un poco más y recorta por partes.', true); return; }
     try {
-      const niveles = [z]; if ($('rc-detalle').checked && z + 1 <= zMax) niveles.push(z + 1);
-      const imgs = [];
-      for (const nz of niveles) imgs.push({ z: nz, ...(await capturarZoom(base, limites, nz)) });
+      const cache = await caches.open(CACHE_TESELAS);
+      let hechos = 0, fallas = 0, i = 0;
+      const trabajador = async () => {
+        while (i < urls.length) {
+          const u = urls[i++];
+          try {
+            let r = await cache.match(u);
+            if (!r) { r = await fetch(u, { mode: 'cors' }); if (!r.ok) throw 0; await cache.put(u, r); }
+          } catch { fallas++; }
+          hechos++; $('rc-estado').textContent = `Guardando mapa… ${hechos} de ${urls.length}`;
+        }
+      };
+      await Promise.all([1, 2, 3, 4, 5, 6].map(trabajador));   // 6 descargas a la vez
+      if (fallas > urls.length / 2) throw new Error('no se pudieron descargar las teselas; revisa tu conexión');
       const id = 'rc' + Date.now();
-      const datos = { id, nombre, fecha: new Date().toISOString(), base: base === topo ? 'OpenTopoMap' : 'OpenStreetMap',
-        imgs: imgs.map(i => ({ z: i.z, blob: i.blob, bounds: i.bounds })), visible: true,
-        bytes: imgs.reduce((a, i) => a + i.blob.size, 0) };
+      const datos = { id, nombre, tipo: 'teselas', fecha: new Date().toISOString(), base: capa === topo ? 'OpenTopoMap' : 'OpenStreetMap',
+        bounds: [[limites.getSouth(), limites.getWest()], [limites.getNorth(), limites.getEast()]], zooms, urls, visible: true };
       await BDM.poner(id, datos);
-      recortes.set(id, { datos, capa: null }); mostrarRecorte(id, true);
-      const fallas = imgs.reduce((a, i) => a + i.fallas, 0);
-      $('rc-estado').textContent = fallas ? `Guardado con ${fallas} tesela(s) sin cargar (se ven en gris).` : 'Recorte guardado ✔';
-      $('rc-nombre').value = ''; pintarRecortes(); avisar(`Recorte "${nombre}" guardado (${tamTxt(datos.bytes)})`);
+      recortes.set(id, datos); pintarZonas();
+      $('rc-estado').textContent = cambio + `Recorte guardado ✔ · ${urls.length} teselas · zoom ${Math.min(...zooms)} a ${Math.max(...zooms)}` +
+        (fallas ? ` (${fallas} sin descargar)` : '');
+      $('rc-nombre').value = ''; pintarRecortes(); avisar(`Recorte "${nombre}" guardado`);
     } catch (err) {
       $('rc-estado').textContent = 'No se pudo recortar: ' + err.message; avisar('No se pudo recortar: ' + err.message, true);
     } finally { $('rc-recortar').disabled = false; }
   }
-  function mostrarRecorte(id, ver) {
-    const r = recortes.get(id); if (!r) return;
-    if (r.capa) { map.removeLayer(r.capa); r.capa.eachLayer(l => URL.revokeObjectURL(l._url)); r.capa = null; }
-    if (ver) {
-      // imagen del nivel de detalle más alto encima, la del nivel base debajo
-      r.capa = L.layerGroup(r.datos.imgs.slice().sort((a, b) => a.z - b.z).map(i =>
-        L.imageOverlay(URL.createObjectURL(i.blob), i.bounds, { pane: 'recortes', interactive: false }))).addTo(map);
-    }
-    r.datos.visible = ver; BDM.poner(id, r.datos).catch(() => {});
+  // contorno punteado de las zonas guardadas que están "abiertas"
+  function pintarZonas() {
+    capaZonas.clearLayers();
+    recortes.forEach(d => { if (d.visible) L.rectangle(d.bounds, { color: '#0a6cff', weight: 2, dashArray: '6 6', fill: false, interactive: false }).addTo(capaZonas); });
+  }
+  async function borrarRecorte(id) {
+    const d = recortes.get(id); recortes.delete(id);
+    // borra solo las teselas que no usa otro recorte
+    const enUso = new Set(); recortes.forEach(o => (o.urls || []).forEach(u => enUso.add(u)));
+    try { const cache = await caches.open(CACHE_TESELAS); await Promise.all((d.urls || []).filter(u => !enUso.has(u)).map(u => cache.delete(u))); } catch {}
+    await BDM.borrar(id).catch(() => {});
+    pintarZonas(); pintarRecortes();
   }
   function pintarRecortes() {
-    const lista = [...recortes.values()].sort((a, b) => b.datos.fecha.localeCompare(a.datos.fecha));
-    $('rc-lista').innerHTML = lista.length ? lista.map(({ datos: d }) => `<li class="${d.visible ? 'activo' : ''}">
-        <span class="rc-nom"><b>${esc(d.nombre)}</b><small>${new Date(d.fecha).toLocaleDateString('es-PE')} · ${d.base} · ${tamTxt(d.bytes)}</small></span>
-        <button class="rc-abrir" data-id="${d.id}" aria-pressed="${d.visible}">${d.visible ? 'Cerrar' : 'Abrir'}</button>
+    const lista = [...recortes.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    $('rc-lista').innerHTML = lista.length ? lista.map(d => `<li class="${d.visible ? 'activo' : ''}">
+        <span class="rc-nom"><b>${esc(d.nombre)}</b><small>${new Date(d.fecha).toLocaleDateString('es-PE')} · ${d.base} · ${(d.urls || []).length} teselas</small></span>
+        <button class="rc-abrir" data-id="${d.id}" aria-pressed="${d.visible}" title="Mostrar u ocultar el contorno de la zona">${d.visible ? 'Ocultar zona' : 'Ver zona'}</button>
         <button class="rc-ir" data-id="${d.id}" title="Ir a la zona">Ir</button>
         <button class="rc-borrar" data-id="${d.id}" title="Borrar recorte">🗑</button></li>`).join('')
       : '<li><span class="rc-nom"><small>Aún no hay recortes guardados.</small></span></li>';
     $('rc-lista').querySelectorAll('.rc-abrir').forEach(b => b.onclick = () => {
-      const r = recortes.get(b.dataset.id); mostrarRecorte(b.dataset.id, !r.datos.visible); pintarRecortes(); });
+      const d = recortes.get(b.dataset.id); d.visible = !d.visible; BDM.poner(d.id, d).catch(() => {}); pintarZonas(); pintarRecortes(); });
     $('rc-lista').querySelectorAll('.rc-ir').forEach(b => b.onclick = () => {
-      const r = recortes.get(b.dataset.id); if (!r.datos.visible) { mostrarRecorte(b.dataset.id, true); pintarRecortes(); }
-      cerrarPanelesMovil(); map.fitBounds(r.datos.imgs[0].bounds); });
+      const d = recortes.get(b.dataset.id);
+      usarCapa(d.base === 'OpenTopoMap' ? topo : osm);          // el mapa base con el que se guardó
+      if (!d.visible) { d.visible = true; BDM.poner(d.id, d).catch(() => {}); pintarZonas(); pintarRecortes(); }
+      cerrarPanelesMovil(); map.fitBounds(d.bounds); });
     $('rc-lista').querySelectorAll('.rc-borrar').forEach(b => b.onclick = async () => {
-      const r = recortes.get(b.dataset.id);
-      if (!confirm(`¿Borrar el recorte "${r.datos.nombre}"?`)) return;
-      mostrarRecorte(b.dataset.id, false); recortes.delete(b.dataset.id); await BDM.borrar(b.dataset.id).catch(() => {});
-      pintarRecortes(); avisar('Recorte borrado');
+      const d = recortes.get(b.dataset.id);
+      if (!confirm(`¿Borrar el recorte "${d.nombre}"?`)) return;
+      await borrarRecorte(b.dataset.id); avisar('Recorte borrado');
     });
   }
-  $('b-offline').onclick = () => { if (abrirPanel('offline')) { pintarRecortes(); $('rc-estado').textContent = navigator.onLine ? '' : 'Sin internet: puedes abrir tus recortes guardados.'; } };
+  $('b-offline').onclick = () => { if (abrirPanel('offline')) { pintarRecortes(); $('rc-estado').textContent = navigator.onLine ? '' : 'Sin internet: usa "Ir" para ir a una zona guardada.'; } };
   $('rc-recortar').onclick = recortarVista;
-  // al abrir la app, se vuelven a mostrar los recortes que estaban abiertos
-  BDM.todos().then(lista => { lista.forEach(d => { recortes.set(d.id, { datos: d, capa: null }); if (d.visible) mostrarRecorte(d.id, true); }); }).catch(() => {});
-  window.addEventListener('offline', () => { if ([...recortes.values()].some(r => r.datos.visible)) avisar('Sin internet: se muestran tus recortes guardados'); });
+  // al abrir la app: recupera la lista; los recortes del formato anterior (imagen gris) se eliminan solos
+  BDM.todos().then(lista => {
+    lista.forEach(d => { if (d.tipo === 'teselas') recortes.set(d.id, d); else BDM.borrar(d.id).catch(() => {}); });
+    pintarZonas();
+  }).catch(() => {});
+  window.addEventListener('offline', () => { if (recortes.size) avisar('Sin internet: el mapa se verá en las zonas que recortaste'); });
 
   // =================== BUSCADOR DE CÓDIGOS (en todas las capas cargadas) ===================
   const normCod = v => String(v ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
